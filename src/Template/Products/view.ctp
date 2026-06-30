@@ -1,172 +1,271 @@
 <?php $this->extend('/Common/crud'); ?>
-<?php $this->loadHelper('Form', [ 'templates' => 'app_form' ]); 
+<?php $this->loadHelper('Form', ['templates' => 'app_form']);
 
 $this->assign('title', 'Détails du produit : ' . h($product->title));
-// Add an edit button to the header, similar to how 'Imprimer' was in Packs/view.ctp
-$editButton = $this->Html->link('Modifier ce produit', ['action' => 'edit', $product->id], ['class' => 'btn btn-success font-weight-bold']);
-$this->assign('edit', $editButton); // 'edit' is a block often used in crud.ctp for header actions
+// Add edit button to toolbar block
+$editButton = $this->Html->link('<i class="la la-edit icon-sm"></i> Modifier ce produit', ['action' => 'edit', $product->id], ['class' => 'btn btn-light-warning font-weight-bolder btn-sm mr-2', 'escape' => false]);
+$this->assign('edit', $editButton);
 ?>
-<div class="card-body">
-    <div class="row pb-4">
-        <div class="col-lg-8">
-            <h3><?= h($product->title) ?></h3>
-            <table class="table table-bordered table-hover">
-                <tr>
-                    <th scope="row"><?= __('Référence') ?></th>
-                    <td><?= h($product->reference) ?></td>
-                </tr>
-                <?php if ($product->has('category') && $product->category): ?>
-                <tr>
-                    <th scope="row"><?= __('Catégorie') ?></th>
-                    <td><?= $this->Html->link($product->category->title, ['controller' => 'Categories', 'action' => 'view', $product->category->id]) ?></td>
-                </tr>
-                <?php endif; ?>
-                <?php if ($product->has('unite') && $product->unite): ?>
-                <tr>
-                    <th scope="row"><?= __('Unité') ?></th>
-                    <td><?= $this->Html->link($product->unite->title, ['controller' => 'Unites', 'action' => 'view', $product->unite->id]) ?></td>
-                </tr>
-                <?php endif; ?>
-                <?php if ($product->has('supplier') && $product->supplier): ?>
-                <tr>
-                    <th scope="row"><?= __('Fournisseur') ?></th>
-                    <td><?= $this->Html->link($product->supplier->name, ['controller' => 'Suppliers', 'action' => 'view', $product->supplier->id]) ?></td>
-                </tr>
-                <?php endif; ?>
-                <tr>
-                    <th scope="row"><?= __('Prix d\'achat') ?></th>
-                    <td><?= $this->Number->currency($product->buyingprice) ?></td>
-                </tr>
-                <tr>
-                    <th scope="row"><?= __('Prix de vente') ?></th>
-                    <td><?= $this->Number->currency($product->sellingprice) ?></td>
-                </tr>
-                <tr>
-                    <th scope="row"><?= __('Commission') ?></th>
-                    <td><?= $this->Number->format($product->commission) ?></td>
-                </tr>
-                <tr>
-                    <th scope="row"><?= __('Statut') ?></th>
-                    <td><?= $product->statut ? __('Actif') : __('Innactif') ?></td>
-                </tr>
-                <?php if ($product->has('company') && $product->company): ?>
-                <tr>
-                    <th scope="row"><?= __('Société') ?></th>
-                    <td><?= $this->Html->link($product->company->name, ['controller' => 'Companies', 'action' => 'view', $product->company->id]) ?></td>
-                </tr>
-                <?php endif; ?>
-                <tr>
-                    <th scope="row"><?= __('Créé le') ?></th>
-                    <td><?= h($product->created) ?></td>
-                </tr>
-                <tr>
-                    <th scope="row"><?= __('Modifié le') ?></th>
-                    <td><?= h($product->modified) ?></td>
-                </tr>
-            </table>
-        </div>
-        <div class="col-lg-4">
-            <?php if ($product->photo): // Assuming 'photo' is a field in the product entity or related Photo entity ?>
-                <h4><?= __('Photo') ?></h4>
-                <?php 
-                // This assumes product->photo is the direct path or you have a helper.
-                // Adjust if product photo is stored in a related 'Photos' table like in Packs.
-                // For now, let's assume a simple field or a direct path.
-                // If it's like Packs (Photos table with dir and photo fields):
-                // $photoPath = ($product->has('photos') && !empty($product->photos)) ? $product->photos[0]->dir . '/' . $product->photos[0]->photo : 'img/unvailable.jpg';
-                // For simplicity, if $product->photo is just the filename in webroot/img/products/
-                $photoPath = 'img/products/' . $product->photo; // Placeholder, adjust to your photo logic
-                // A more robust way if photo is in Photos table (like PacksController implies for products search)
-                // Need to ensure $product is contained with Photos in controller if this is the case.
-                // $product = $this->Products->get($id, ['contain' => ['Categories', ..., 'Photos']]);
-                // if ($product->has('photos') && !empty($product->photos[0])) {
-                //    $photoPath = $product->photos[0]->dir . DS . $product->photos[0]->photo;
-                // } else {
-                //    $photoPath = 'img/unvailable.jpg';
-                // }
-                // For now, using a placeholder if direct field `photo` is not available
-                // $actualPhotoPath = $product->photo ? 'files/products/photo/' . $product->photo : 'img/unvailable.jpg'; // Example path
-                // Let's assume the photo path is directly accessible or handled by a helper/entity virtual field
-                // For now, this part is a placeholder for how image is displayed.
-                // echo $this->Html->image($actualPhotoPath, ['alt' => h($product->title), 'class' => 'img-fluid']);
-                echo "<!-- Placeholder for product image -->";
-                if (!empty($product->photo_path)) { // Assuming a virtual field or helper sets this
-                     echo $this->Html->image($product->photo_path, ['alt' => h($product->title), 'class' => 'img-fluid']);
-                } elseif ($product->photo && is_string($product->photo)) { // If photo field stores filename
-                     echo $this->Html->image('products_photos/' . $product->photo, ['alt' => h($product->title), 'class' => 'img-fluid', 'style' => 'max-height: 300px;']);
-                } else {
-                     echo $this->Html->image('unvailable.jpg', ['alt' => 'Pas d\'image', 'class' => 'img-fluid']);
-                }
-                ?>
-            <?php endif; ?>
-        </div>
-    </div>
 
-    <?php // Omitted complex AJAX history sections from Packs/view.ctp for now. ?>
-    <?php // These would require significant backend changes for Products. ?>
-    <?php /*
+<div class="card-body p-6">
     <div class="row">
-        <div class="col-lg-4 col-6 pb-2">
-            <a href="#" class="card card-custom bg-dark bg-hover-state-dark mb-0">
-                <div class="text-inverse-dark font-weight-bolder font-size-h5 my-1 mx-5"> ACHATS <p class="font-weight-bold text-inverse-dark font-size-sm achats">(Historique des achats)</p></div>
-            </a>
+        <!-- Main details (Left Column) -->
+        <div class="col-lg-8">
+            <div class="card card-custom card-border mb-6">
+                <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+                    <div class="card-title">
+                        <span class="card-icon">
+                            <i class="flaticon-list text-primary font-size-h5"></i>
+                        </span>
+                        <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Informations Générales
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-head-custom table-vertical-center table-hover mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 w-250px pl-5"><?= __('Référence') ?></td>
+                                    <td class="text-dark font-weight-bold"><?= h($product->reference) ?></td>
+                                </tr>
+                                <?php if ($product->has('category') && $product->category): ?>
+                                    <tr>
+                                        <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Catégorie') ?></td>
+                                        <td><?= $this->Html->link($product->category->title, ['controller' => 'Categories', 'action' => 'view', $product->category->id], ['class' => 'text-primary font-weight-bold']) ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if ($product->has('supplier') && $product->supplier): ?>
+                                    <tr>
+                                        <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Fournisseur') ?></td>
+                                        <td><?= $this->Html->link($product->supplier->name, ['controller' => 'Suppliers', 'action' => 'view', $product->supplier->id], ['class' => 'text-primary font-weight-bold']) ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Prix d\'achat') ?></td>
+                                    <td class="text-success font-weight-bolder">
+                                        <?= $this->Number->currency($product->buyingprice, 'MAD') ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Prix de vente') ?></td>
+                                    <td class="text-primary font-weight-bolder">
+                                        <?= $this->Number->currency($product->sellingprice, 'MAD') ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Commission') ?></td>
+                                    <td class="text-dark"><?= $this->Number->format($product->commission) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Statut') ?></td>
+                                    <td>
+                                        <?php if ($product->statut): ?>
+                                            <span
+                                                class="label label-lg label-light-success label-inline font-weight-bolder">Actif</span>
+                                        <?php else: ?>
+                                            <span
+                                                class="label label-lg label-light-danger label-inline font-weight-bolder">Inactif</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php if ($product->has('company') && $product->company): ?>
+                                    <tr>
+                                        <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Société') ?></td>
+                                        <td><?= $this->Html->link($product->company->name, ['controller' => 'Companies', 'action' => 'view', $product->company->id], ['class' => 'text-muted']) ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Créé le') ?></td>
+                                    <td class="text-muted font-size-sm"><?= h($product->created) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-weight-bolder text-dark-50 pl-5"><?= __('Modifié le') ?></td>
+                                    <td class="text-muted font-size-sm"><?= h($product->modified) ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-lg-4 col-6">
-            <a href="#" class="card card-custom bg-dark bg-hover-state-dark mb-0">
-                <div class="text-inverse-dark font-weight-bolder font-size-h5 my-1 mx-5">VENTES <p class="font-weight-bold text-inverse-dark font-size-sm ventes">(Historique des ventes)</p></div>
-            </a>
-        </div>
-        <div class="col-lg-4 col-6">
-            <a href="#" class="card card-custom bg-dark bg-hover-state-dark mb-0">
-                <div class="text-inverse-dark font-weight-bolder font-size-h5 my-1 mx-2">PRIX <p class="font-weight-bold text-inverse-dark font-size-sm prices">(Historique des changement de prix)</p></div>
-            </a>
-        </div>
-    </div>
-    <div class="card-body">
-        <div class=" pr-5">
-            <div class="col-xl-6 col-sm-6">
-                <input type="text" class="form-control" name="daterange" id="daterange" placeholder="Sélectionner les dates" readonly="">
+
+        <!-- Right Column (Image and Units) -->
+        <div class="col-lg-4">
+            <!-- Product Photo -->
+            <div class="card card-custom card-border mb-6">
+                <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+                    <div class="card-title">
+                        <span class="card-icon">
+                            <i class="flaticon2-image-file text-primary font-size-h5"></i>
+                        </span>
+                        <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Photo</h5>
+                    </div>
+                </div>
+                <div class="card-body p-6 text-center">
+                    <?php
+                    if (!empty($product->photo_path)) {
+                        echo $this->Html->image($product->photo_path, ['alt' => h($product->title), 'class' => 'img-fluid rounded max-h-250px']);
+                    } elseif ($product->photo && is_string($product->photo)) {
+                        echo $this->Html->image('products_photos/' . $product->photo, ['alt' => h($product->title), 'class' => 'img-fluid rounded max-h-250px']);
+                    } else {
+                        echo $this->Html->image('unvailable.jpg', ['alt' => 'Pas d\'image', 'class' => 'img-fluid rounded max-h-250px']);
+                    }
+                    ?>
+                </div>
+            </div>
+
+            <!-- Product Sales Packages -->
+            <div class="card card-custom card-border mb-6">
+                <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+                    <div class="card-title">
+                        <span class="card-icon">
+                            <i class="flaticon-open-box text-primary font-size-h5"></i>
+                        </span>
+                        <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Unités de Vente</h5>
+                    </div>
+                </div>
+                <div class="card-body p-5">
+                    <?php if (!empty($product->productunites)): ?>
+                        <div class="list-group list-group-flush">
+                            <?php foreach ($product->productunites as $pu): ?>
+                                <?php if ($pu->has('unite') && $pu->unite): ?>
+                                    <div class="list-group-item d-flex align-items-center justify-content-between px-0 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="la la-box text-warning font-size-h3 mr-3"></i>
+                                            <span class="font-weight-bold text-dark-75"><?= h($pu->unite->title) ?></span>
+                                        </div>
+                                        <span class="label label-inline label-light-primary font-weight-bolder font-size-sm">
+                                            <?= $pu->quantity ?> pièces
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted text-center py-4 mb-0"><i class="flaticon2-warning text-warning mr-1"></i>
+                            Aucune unité définie.</p>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
-    <div class="infos">
-    </div>
-    */ ?>
 
-    <?php // Display related data if needed, similar to baked template but styled if necessary ?>
+    <!-- Related Packs section -->
     <?php if (!empty($product->packproducts)): ?>
-    <div class="related pt-4 mt-4 border-top">
-        <h4><?= __('Produit présent dans les Packs suivants') ?></h4>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th scope="col"><?= __('Pack') ?></th>
-                    <th scope="col"><?= __('Quantité dans le pack') ?></th>
-                    <th scope="col" class="actions"><?= __('Actions') ?></th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($product->packproducts as $packproduct): ?>
-            <tr>
-                <td><?= $packproduct->has('pack') ? $this->Html->link($packproduct->pack->title, ['controller' => 'Packs', 'action' => 'view', $packproduct->pack_id]) : h($packproduct->pack_id) ?></td>
-                <td><?= h($packproduct->quantity) ?></td>
-                <td class="actions">
-                    <?= $this->Html->link(__('Voir Packproduct'), ['controller' => 'Packproducts', 'action' => 'view', $packproduct->id], ['class' => 'btn btn-xs btn-info']) ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+        <div class="card card-custom card-border mt-6">
+            <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+                <div class="card-title">
+                    <span class="card-icon">
+                        <i class="flaticon2-box-1 text-primary font-size-h5"></i>
+                    </span>
+                    <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">
+                        <?= __('Produit présent dans les Packs suivants') ?>
+                    </h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-head-custom table-vertical-center table-hover mb-0">
+                        <thead>
+                            <tr class="bg-light">
+                                <th class="pl-5" scope="col"><?= __('Pack') ?></th>
+                                <th scope="col"><?= __('Quantité dans le pack') ?></th>
+                                <th scope="col" class="text-right pr-5"><?= __('Actions') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($product->packproducts as $packproduct): ?>
+                                <tr>
+                                    <td class="pl-5">
+                                        <?= $packproduct->has('pack') ? $this->Html->link($packproduct->pack->title, ['controller' => 'Packs', 'action' => 'view', $packproduct->pack_id], ['class' => 'font-weight-bolder text-primary text-hover-primary']) : h($packproduct->pack_id) ?>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="label label-inline label-light-success font-weight-bolder"><?= h($packproduct->quantity) ?></span>
+                                    </td>
+                                    <td class="text-right pr-5">
+                                        <?= $this->Html->link('<i class="la la-eye"></i> Voir Pack', ['controller' => 'Packs', 'action' => 'view', $packproduct->pack_id], ['class' => 'btn btn-xs btn-light-primary font-weight-bold btn-icon-sm', 'escape' => false]) ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     <?php endif; ?>
 
-    <?php // Add other related data sections if necessary (e.g., Orderpackproducts, Supporderproducts, Whproducts) ?>
-
+    <!-- Suppliers Orders & Receipts section -->
+    <div class="card card-custom card-border mt-6">
+        <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+            <div class="card-title">
+                <span class="card-icon">
+                    <i class="flaticon2-shopping-cart text-primary font-size-h5"></i>
+                </span>
+                <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">
+                    <?= __('Commandes Fournisseurs & Réceptions') ?>
+                </h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-head-custom table-vertical-center table-hover mb-0">
+                    <thead>
+                        <tr class="bg-light">
+                            <th class="pl-5" scope="col"><?= __('N° Commande') ?></th>
+                            <th scope="col"><?= __('N° Réception') ?></th>
+                            <th scope="col"><?= __('Date') ?></th>
+                            <th scope="col"><?= __('Quantité') ?></th>
+                            <th scope="col"><?= __('Prix Unitaire') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($product->supporderproducts)): ?>
+                            <?php foreach ($product->supporderproducts as $sop): ?>
+                                <tr>
+                                    <td class="pl-5 font-weight-bold">
+                                        <?php if ($sop->has('supplierorder') && $sop->supplierorder): ?>
+                                            <?= $this->Html->link($sop->supplierorder->code, ['controller' => 'Supplierorders', 'action' => 'view', $sop->supplierorder->id], ['class' => 'text-primary font-weight-bolder']) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="font-weight-bold">
+                                        <?php if ($sop->has('receipt') && $sop->receipt): ?>
+                                            <?= $this->Html->link($sop->receipt->code, ['controller' => 'Receipts', 'action' => 'view', $sop->receipt->id], ['class' => 'text-success font-weight-bolder']) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-muted font-size-sm">
+                                        <?= h($sop->created) ?>
+                                    </td>
+                                    <td>
+                                        <span class="label label-inline label-light-info font-weight-bolder">
+                                            <?= h($sop->quantity) ?>
+                                            <?= ($sop->has('productunite') && $sop->productunite->has('unite') && $sop->productunite->unite) ? h($sop->productunite->unite->title) : __('unités') ?>
+                                        </span>
+                                    </td>
+                                    <td class="text-dark font-weight-bolder">
+                                        <?= $this->Number->currency($sop->price, 'MAD') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" class="text-muted text-center py-4">
+                                    <i class="flaticon2-warning text-warning mr-1"></i>
+                                    <?= __('Aucune commande ou réception enregistrée pour ce produit.') ?>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
-   
-<?php // Omitted JavaScript for AJAX history loading and daterangepicker from Packs/view.ctp ?>
-<?php /*
-<?= $this->Html->scriptStart(['block'=>'script_bottom']) ?>
-    // AJAX and daterangepicker JS from Packs/view.ctp would go here if implemented for Products
-<?= $this->Html->scriptEnd(); ?>
-*/ ?>

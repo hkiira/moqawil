@@ -83,6 +83,13 @@ class ProductsTable extends Table
             'foreignKey' => 'measurement_unit_id',
             'joinType' => 'LEFT'
         ]);
+        $this->belongsToMany('ProductPackages', [
+            'foreignKey' => 'product_id',
+            'targetForeignKey' => 'product_package_id',
+            'joinTable' => 'products_product_packages',
+            'through' => 'ProductsProductPackages',
+            'dependent' => true
+        ]);
         
         $this->hasOne('Photos', [
             'foreignKey' => 'objectid',

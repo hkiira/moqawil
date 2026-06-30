@@ -14,7 +14,7 @@ use Cake\Routing\Router;
 
  0: innactif
  1: actif
- 
+
  */
 class CategoriesController extends AppController
 {
@@ -23,14 +23,14 @@ class CategoriesController extends AppController
      *
      * @return \Cake\Http\Response|null
      */
-    public function index($id = null, $category_id = null)
+    public function index($id = null, $type = "pack", $category_id = null)
     {
         if ($id) {
             if ($category_id) {
                 $category = $this->Categories->get($category_id);
-                $this->set(compact('category', 'id'));
+                $this->set(compact('category', 'id', 'type'));
             } else {
-                $this->set(compact('id'));
+                $this->set(compact('id', 'type'));
             }
         } else {
             $this->Flash->error(__('Vous n\'avez pas les droits pour accéder a cet endroit. Veuillez réessayer.'));
@@ -227,7 +227,7 @@ class CategoriesController extends AppController
      *
      * @return \Cake\Http\Response|null Redirects on successful add, renders view otherwise.
      */
-    public function add($id = null)
+    public function add($id = null, $type = "pack")
     {
         $category = $this->Categories->newEntity();
         if ($this->request->is('post')) {
@@ -245,6 +245,7 @@ class CategoriesController extends AppController
             } else {
                 $category->statut = 0;
             }
+            $category->type = $type;
             $code = $this->Categories->Companies->Companycodes->find('all')->where(['controleur' => 'Categories', 'company_id' => $this->Auth->user('company_id')])->last();
             $category->code = $code->prefixe . ($code->compteur + 1);
             $category->company_id = $this->Auth->user('company_id');
@@ -254,12 +255,12 @@ class CategoriesController extends AppController
                 $this->Categories->Companies->Companycodes->save($code);
                 $this->Flash->success(__('La catégorie a été enregistrée.'));
 
-                return $this->redirect(['action' => 'index', $id]);
+                return $this->redirect(['action' => 'index', $id, $type]);
             }
             $this->Flash->error(__('La catégorie n\'a pas pu être enregistrée. Veuillez réessayer.'));
         }
-        $categories = $this->Categories->find('list')->where(['statut' => 1, 'company_id' => $this->Auth->user('company_id'), 'category_id IS NULL']);
-        $this->set(compact('category', 'categories', 'id'));
+        $categories = $this->Categories->find('list')->where(['statut' => 1, 'type' => $type, 'company_id' => $this->Auth->user('company_id'), 'category_id IS NULL']);
+        $this->set(compact('category', 'categories', 'id', 'type'));
     }
 
     /**
@@ -298,7 +299,7 @@ class CategoriesController extends AppController
         $this->set(compact('category', 'categories', 'image'));
     }
 
-    public function search($type = null, $categoryid = null)
+    public function search($id = null, $type = "pack", $categoryid = null)
     {
 
         $page = $this->request->getData('pagination.page');
@@ -333,31 +334,37 @@ class CategoriesController extends AppController
         ## Search 
         $empQuery = $this->Categories->find('all')->contain('Parentcategories')->where(['Categories.company_id' => $this->Auth->user('company_id')]);
         $empQuery->order([$columnName => $columnSort]);
+        $sel->where(['Categories.type' => $type]);
+        $empQuery->where(['Categories.type' => $type]);
 
         if ($searchValue != '') {
-            $sel->where(["OR" => [
-                ['Categories.title LIKE' => '%' . $searchValue . '%'],
-                ['Categories.code LIKE' => '%' . $searchValue . '%'],
-                ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
-                ['lower(Categories.code) LIKE' => '%' . $searchValue . '%'],
-                ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
-                ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
-            ]]);
-            $empQuery->where(["OR" => [
-                ['Categories.title LIKE' => '%' . $searchValue . '%'],
-                ['Categories.code LIKE' => '%' . $searchValue . '%'],
-                ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
-                ['lower(Categories.code) LIKE' => '%' . $searchValue . '%'],
-                ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
-                ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
-            ]]);
+            $sel->where([
+                "OR" => [
+                    ['Categories.title LIKE' => '%' . $searchValue . '%'],
+                    ['Categories.code LIKE' => '%' . $searchValue . '%'],
+                    ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Categories.code) LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
+                ]
+            ]);
+            $empQuery->where([
+                "OR" => [
+                    ['Categories.title LIKE' => '%' . $searchValue . '%'],
+                    ['Categories.code LIKE' => '%' . $searchValue . '%'],
+                    ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Categories.code) LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
+                    ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
+                ]
+            ]);
         }
 
         if ($searchStatus > -1) {
             $empQuery->where(['Categories.statut' => $searchStatus]);
             $sel->where(['Categories.statut' => $searchStatus]);
         }
-        if ($type == 1) {
+        if ($id == 1) {
             $sel->where(['Categories.category_id IS NULL']);
             $empQuery->where(['Categories.category_id IS NULL']);
         } else {

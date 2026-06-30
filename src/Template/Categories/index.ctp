@@ -11,7 +11,7 @@ if (isset($category)) {
 }
 ?>
 <?php
-$test = '<a href="/categories/add/' . $id . '" class="btn btn-primary font-weight-bolder">
+$test = '<a href="/categories/add/' . $id . '/' . $type . '" class="btn btn-primary font-weight-bolder">
                 <span class="svg-icon svg-icon-md">
                 <!--begin::Svg Icon | path:assets/media/svg/icons/Design/Flatten.svg-->
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
@@ -24,13 +24,15 @@ $test = '<a href="/categories/add/' . $id . '" class="btn btn-primary font-weigh
             </span>Nouvelle ' . $categorie . '</a>';
 
 $this->assign('actionsubh', $test);
-?><div class="card card-custom">
+?>
+<div class="card card-custom">
     <div class="card-body">
         <div class="mb-7">
             <div class="row align-items-center">
                 <div class="col-lg-4 col-xl-4 mt-5 mt-lg-0">
                     <div class="input-icon">
-                        <input type="text" class="form-control" placeholder="Rechercher..." id="kt_datatable_search_query" />
+                        <input type="text" class="form-control" placeholder="Rechercher..."
+                            id="kt_datatable_search_query" />
                         <span>
                             <i class="flaticon2-search-1 text-muted"></i>
                         </span>
@@ -54,7 +56,7 @@ $this->assign('actionsubh', $test);
         <div class="datatable datatable-bordered datatable-head-custom" id="kt_datatable"></div>
     </div>
 </div>
-<?php $url = (isset($category)) ?  $this->Url->build(['action' => 'search', $id, $category->id]) :  $this->Url->build(['action' => 'search', $id]); ?>
+<?php $url = (isset($category)) ? $this->Url->build(['action' => 'search', $id, $type, $category->id]) : $this->Url->build(['action' => 'search', $id, $type]); ?>
 <?= $this->Html->script('/js/categories.js', ['block' => 'script_bottom']) ?>
 <?= $this->Html->scriptStart(['block' => 'script_bottom']) ?>
 var HOST_URL = "<?php echo $url; ?>";

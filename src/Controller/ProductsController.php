@@ -32,7 +32,14 @@ class ProductsController extends AppController
             'contain' => ['Categories', 'Productunites', 'Companies', 'Suppliers'],
         ];
         $products = $this->paginate($this->Products);
-        $categories = $this->Products->Categories->find('list', ['limit' => 200, 'conditions' => ['Categories.statut' => 1]]); // Fetch categories for the filter
+        $categories = $this->Products->Categories->find('list', [
+            'limit' => 200,
+            'conditions' => [
+                'Categories.statut' => 1,
+                'Categories.type' => 'product',
+                'Categories.company_id' => $this->Auth->user('company_id')
+            ]
+        ]); // Fetch categories for the filter
 
         $this->set(compact('products', 'categories')); // Add categories to set
     }
@@ -47,7 +54,20 @@ class ProductsController extends AppController
     public function view($id = null)
     {
         $product = $this->Products->get($id, [
-            'contain' => ['Categories', 'Unites','Suppliers', 'Packproducts'],
+            'contain' => [
+                'Categories', 
+                'Productunites.Unites', 
+                'Suppliers', 
+                'Packproducts.Packs',
+                'Supporderproducts' => function ($q) {
+                    return $q->contain([
+                        'Supplierorders',
+                        'Receipts',
+                        'Productunites.Unites'
+                    ])->order(['Supporderproducts.created' => 'DESC']);
+                }
+            ],
+            'conditions' => ['Products.company_id' => $this->Auth->user('company_id')]
         ]);
 
         $this->set('product', $product);
@@ -62,67 +82,70 @@ class ProductsController extends AppController
     {
         $product = $this->Products->newEntity();
         if ($this->request->is('post')) {
-            $datas=$this->request->getData();
-            
-            $depots=$this->Products->Packproducts->Products->Whproducts->Warehouses->find('all')->where(['whtype_id'=>2,'company_id'=>$this->Auth->user('company_id')]);
-            $whproducts=[];
-            
+            $datas = $this->request->getData();
+
+            $depots = $this->Products->Packproducts->Products->Whproducts->Warehouses->find('all')->where(['whtype_id' => 2, 'company_id' => $this->Auth->user('company_id')]);
+            $whproducts = [];
+
             // When creating a new pack, Whproduct entries are for this pack.
             // item_id will be set by the ORM through association if foreignKey is 'item_id'.
             // We must ensure item_type is set.
             foreach ($depots as $key => $depot) {
-                $whproducts[$key]=[
+                $whproducts[$key] = [
                     'item_type' => 'Product', // Specify item_type for pack stock
-                    'warehouse_id'=>$depot->id,
-                    'quantity'=>0,
-                    'statut'=>1,
-                    'company_id'=>$this->Auth->user('company_id')
+                    'warehouse_id' => $depot->id,
+                    'quantity' => 0,
+                    'statut' => 1,
+                    'company_id' => $this->Auth->user('company_id')
                     // 'item_id' will be the new pack's ID, handled by association.
                 ];
             }
-            $datas['whproducts']=$whproducts; // This will be part of $datas passed to patchEntity
-                   
-            if($datas['productunites'][0]['quantity']<=0){
+            $datas['whproducts'] = $whproducts; // This will be part of $datas passed to patchEntity
+
+            if ($datas['productunites'][0]['quantity'] <= 0) {
                 $this->Flash->error(__('Merci de vérfier la quantité du Carton/Sac.'));
                 return $this->redirect(['action' => 'add']);
             }
-            $datas['whproducts']=$whproducts;
-            
-            foreach($datas['productunites'] as $key=>$packun){
-                $datas['productunites'][$key]['company_id']=$this->Auth->user('company_id');
-                $datas['productunites'][$key]['statut']=1;
-            }
-              
+            $datas['whproducts'] = $whproducts;
 
-            $increment=0;
-            $packdata=[];
-            $datas['sellingprice']=$datas['buyingprice'];
-            $datas['reference']='PR';
-            $whproducts=$datas ['whproducts'];
-            
-            $product = $this->Products->patchEntity($product, $datas, ['associated'=>['Photos','Productunites']]);
-            
-            
+            foreach ($datas['productunites'] as $key => $packun) {
+                $datas['productunites'][$key]['company_id'] = $this->Auth->user('company_id');
+                $datas['productunites'][$key]['statut'] = 1;
+            }
+
+
+            $increment = 0;
+            $packdata = [];
+            $datas['sellingprice'] = $datas['buyingprice'];
+            $datas['reference'] = 'PR';
+            $whproducts = $datas['whproducts'];
+
+            $product = $this->Products->patchEntity($product, $datas, ['associated' => ['Photos', 'Productunites']]);
+
+
             /*$product->photo->title=$product->title;
             $product->photo->controleur='products';
             $product->photo->company_id=$this->Auth->user('company_id');*/
-            $product->company_id=$this->Auth->user('company_id');
+            $product->company_id = $this->Auth->user('company_id');
             if ($this->Products->save($product)) {
                 foreach ($whproducts as $key => $whproduct) {
-                    $whproduct['item_id']=$product->id;
-                    $whp=$this->Products->Whproducts->newEntity($whproduct);
+                    $whproduct['item_id'] = $product->id;
+                    $whp = $this->Products->Whproducts->newEntity($whproduct);
                     $this->Products->Whproducts->save($whp);
                 }
                 $this->Flash->success(__('L\'article a été enregistré.'));
                 return $this->redirect(['action' => 'index']);
-            } 
+            }
             $this->Flash->error(__('L\'article n\'a pas pu être enregistré. Veuillez réessayer.'));
         }
-        
+
         $categories = $this->Categories->find('list', [
             'keyField' => 'id',
             'valueField' => 'title',
-            'conditions' => ['Categories.company_id' => 1]
+            'conditions' => [
+                'Categories.company_id' => $this->Auth->user('company_id'),
+                'Categories.type' => 'product'
+            ]
         ])->toArray();
 
         $productPackages = $this->ProductPackages->find('list', [
@@ -130,7 +153,7 @@ class ProductsController extends AppController
             'valueField' => function ($package) {
                 return $package->weight . ' ' . $package->unit;
             },
-            'conditions' => ['ProductPackages.company_id' => 1]
+            'conditions' => ['ProductPackages.company_id' => $this->Auth->user('company_id')]
         ])->toArray();
         $measurementUnits = $this->Products->MeasurementUnits->find('list', [
             'keyField' => 'id',
@@ -143,8 +166,8 @@ class ProductsController extends AppController
             ],
             'order' => ['MeasurementUnits.title' => 'ASC']
         ]);
-        $unites = $this->Products->Productunites->Unites->find('list')->where(['statut'=>1,'unite_id IS NOT'=>NULL]);
-        $this->set(compact('product','measurementUnits' ,'categories','unites', 'productPackages'));
+        $unites = $this->Products->Productunites->Unites->find('list')->where(['statut' => 1, 'unite_id IS NOT' => NULL]);
+        $this->set(compact('product', 'measurementUnits', 'categories', 'unites', 'productPackages'));
     }
 
     /**
@@ -158,24 +181,27 @@ class ProductsController extends AppController
     {
         $product = $this->Products->get($id, [
             'contain' => ['ProductPackages'],
-            'conditions' => ['Products.company_id' => 1]
+            'conditions' => ['Products.company_id' => $this->Auth->user('company_id')]
         ]);
-        
+
         if ($this->request->is(['patch', 'post', 'put'])) {
             $data = $this->request->getData();
-            $product = $this->Products->patchEntity($product, $data);
-            
+            $product = $this->Products->patchEntity($product, $data, ['associated' => ['ProductPackages']]);
+
             if ($this->Products->save($product)) {
                 $this->Flash->success(__('Le produit a été modifié.'));
                 return $this->redirect(['action' => 'index']);
             }
             $this->Flash->error(__('Le produit n\'a pas pu être modifié. Veuillez réessayer.'));
         }
-        
+
         $categories = $this->Categories->find('list', [
             'keyField' => 'id',
             'valueField' => 'title',
-            'conditions' => ['Categories.company_id' => 1]
+            'conditions' => [
+                'Categories.company_id' => $this->Auth->user('company_id'),
+                'Categories.type' => 'product'
+            ]
         ])->toArray();
 
         $productPackages = $this->ProductPackages->find('list', [
@@ -183,9 +209,9 @@ class ProductsController extends AppController
             'valueField' => function ($package) {
                 return $package->weight . ' ' . $package->unit;
             },
-            'conditions' => ['ProductPackages.company_id' => 1]
+            'conditions' => ['ProductPackages.company_id' => $this->Auth->user('company_id')]
         ])->toArray();
-        
+
         $this->set(compact('product', 'categories', 'productPackages'));
     }
 
@@ -201,7 +227,7 @@ class ProductsController extends AppController
         $this->request->allowMethod(['post', 'delete']);
         $product = $this->Products->get($id);
         // Change to soft delete by setting statut to -1 (or a different conventional value for deleted)
-        $product->statut = -1; 
+        $product->statut = -1;
         if ($this->Products->save($product)) {
             $this->Flash->success(__('The product has been marked as deleted.'));
         } else {
@@ -211,31 +237,114 @@ class ProductsController extends AppController
         return $this->redirect(['action' => 'index']);
     }
 
+    private function formatMeasurement($value, $unit)
+    {
+        $unit = strtolower($unit);
+
+        switch ($unit) {
+            case 'g':
+                if ($value >= 1000) {
+                    return round($value / 1000, 2) . ' kg';
+                }
+                return $value . ' g';
+
+            case 'ml':
+                if ($value >= 1000) {
+                    return round($value / 1000, 2) . ' L';
+                }
+                return $value . ' ml';
+
+            case 'mm':
+                if ($value >= 1000) {
+                    return round($value / 1000, 2) . ' m';
+                }
+                return $value . ' mm';
+
+            case 'cm':
+                if ($value >= 100) {
+                    return round($value / 100, 2) . ' m';
+                }
+                return $value . ' cm';
+
+            case 'm':
+                if ($value >= 1000) {
+                    return round($value / 1000, 2) . ' km';
+                }
+                return $value . ' m';
+
+            default:
+                return $value . ' ' . $unit;
+        }
+    }
+
+    private function formatQuantity($quantity, $piecesPerUnit, $unitAbbreviation)
+    {
+        $units = floor($quantity / $piecesPerUnit);
+        $remainingPieces = $quantity % $piecesPerUnit;
+
+        $display = '';
+        if ($units > 0) {
+            $display .= '<b>' . $units . '</b> ' . $unitAbbreviation;
+            if ($units > 1)
+                $display .= 's';
+        }
+        if ($remainingPieces > 0) {
+            if ($units > 0)
+                $display .= ' et ';
+            $display .= '<b>' . $remainingPieces . '</b> Pièce';
+            if ($remainingPieces > 1)
+                $display .= 's';
+        }
+
+        return [
+            'display' => $display,
+            'units' => $units,
+            'remaining_pieces' => $remainingPieces,
+            'total_pieces' => $quantity
+        ];
+    }
+
     public function search() // Removed $categoryid, will handle via request params if needed
-    {  
+    {
         $this->request->allowMethod(['ajax', 'get', 'post']); // Allow GET for initial load, POST for AJAX
 
         $draw = $this->request->getData('draw');
-        $start = $this->request->getData('start', 0); // Default to 0 for jQuery DataTables
-        $length = $this->request->getData('length', 10); // Default to 10 for jQuery DataTables
+        $page = (int) $this->request->getData('pagination.page', 1);
+        $perpage = (int) $this->request->getData('pagination.perpage', 10);
+        $field = $this->request->getData('sort.field');
+        $sort = $this->request->getData('sort.sort');
 
-        $searchValue = strtolower((string)$this->request->getData('search.value'));
-        
+        // Fallbacks for jQuery DataTables if needed
+        $start = $this->request->getData('start');
+        $length = $this->request->getData('length');
+        if ($start !== null && $length !== null) {
+            $perpage = (int) $length;
+            $page = floor((int) $start / $perpage) + 1;
+        }
+
+        $searchValue = $this->request->getData('query.generalSearch');
+        if (empty($searchValue)) {
+            $searchValue = $this->request->getData('search.value');
+        }
+        $searchValue = strtolower((string) $searchValue);
+
         // Custom filters from request (if you add them to the AJAX call from DataTables)
-        // Example: $searchCategories = $this->request->getData('categories');
-        // Example: $searchStatus = $this->request->getData('status');
-        // For now, using KTDatatable-like query params if they are still sent by re-wired filters
         $searchCategories = $this->request->getData('query.Category');
         $searchStatusParam = $this->request->getData('query.Status');
-        $searchStatus = ($searchStatusParam !== null && $searchStatusParam !== '') ? (int)$searchStatusParam : -1;
+        $searchStatus = ($searchStatusParam !== null && $searchStatusParam !== '') ? (int) $searchStatusParam : -1;
 
 
         $query = $this->Products->find('all')
-            ->contain(['Categories', 'Suppliers']); // Add 'Photos' if needed for image
-        
-        
-        // Initial total records (before filtering by search value)
-        $recordsTotal = $query->count();
+            ->contain([
+                'Categories',
+                'Suppliers',
+                'MeasurementUnits',
+                'Productunites.Unites.Parentunites',
+                'Whproducts.Warehouses'
+            ]); // Add 'Photos' if needed for image
+
+        // Scope by company
+        $query->where(['Products.company_id' => $this->Auth->user('company_id')]);
 
         // Apply general search value
         if ($searchValue != '') {
@@ -244,50 +353,51 @@ class ProductsController extends AppController
                     'Products.title LIKE' => '%' . $searchValue . '%',
                     'Products.reference LIKE' => '%' . $searchValue . '%', // Assuming 'reference' is like 'code'
                     'Categories.title LIKE' => '%' . $searchValue . '%',
-                    // Add other fields to search if needed
                 ]);
             });
         }
-        
+
         // Apply custom filters (Category, Status)
         if (!empty($searchCategories)) { // Assuming $searchCategories is an array of IDs
-             if (is_array($searchCategories)) {
+            if (is_array($searchCategories)) {
                 $query->where(['Products.category_id IN' => $searchCategories]);
-             } else { // If it's a single value
+            } else { // If it's a single value
                 $query->where(['Products.category_id' => $searchCategories]);
-             }
+            }
         }
         if ($searchStatus !== -1) {
             $query->where(['Products.statut' => $searchStatus]);
+        } else {
+            $query->where(['Products.statut !=' => -1]); // Exclude soft-deleted products
         }
 
         // Total records after filtering by search value and custom filters
-        $recordsFiltered = $query->count();
-        
-        // Handle Sorting for jQuery DataTables
-        $order = $this->request->getData('order.0'); // First order column
-        if ($order) {
-            $columnIndex = (int)$order['column'];
-            $columnSortDir = strtolower($order['dir']) === 'asc' ? 'ASC' : 'DESC';
-            $columnData = $this->request->getData("columns.{$columnIndex}.data");
-            
-            // Map DataTables column 'data' name to actual database field
+        $total = $query->count();
+        $pages = ($perpage > 0) ? ceil($total / $perpage) : 1;
+
+        // Handle Sorting
+        $columnName = 'Products.title';
+        $columnSort = 'ASC';
+        if (!empty($field)) {
             $sortableColumns = [
-                'reference' => 'Products.reference', // Assuming 'reference' is your code
+                'reference' => 'Products.reference',
                 'title' => 'Products.title',
-                'category_title' => 'Categories.title', // Requires join/contain
-                'statut' => 'Products.statut'
-                // Add other sortable columns as defined in DataTables JS
+                'category_title' => 'Categories.title',
+                'statut' => 'Products.statut',
+                'buyingprice' => 'Products.buyingprice',
+                'sellingprice' => 'Products.sellingprice',
+                'commission' => 'Products.commission',
+                'supplier_name' => 'Suppliers.name',
             ];
-            if (isset($sortableColumns[$columnData])) {
-                $query->order([$sortableColumns[$columnData] => $columnSortDir]);
-            } else {
-                 $query->order(['Products.title' => 'ASC']); // Default sort
+            if (isset($sortableColumns[$field])) {
+                $columnName = $sortableColumns[$field];
+                $columnSort = strtolower($sort) === 'desc' ? 'DESC' : 'ASC';
             }
-        } else {
-            $query->order(['Products.title' => 'ASC']); // Default sort
-        } // Debugging SQL query, remove in production
-        $query->limit($length)->offset($start);
+        }
+        $query->order([$columnName => $columnSort]);
+
+        $query->limit($perpage)->page($page);
+
         $data = [];
         foreach ($query as $product) {
             // Prepare data for each row as expected by DataTables columns
@@ -298,28 +408,52 @@ class ProductsController extends AppController
             //    $imageUrl = Router::Url('/' . $product->photos[0]->dir . $product->photos[0]->photo, true);
             // }
 
-            $actions = '<div class="dropdown dropdown-inline">
-                            <a href="javascript:;" class="btn btn-sm btn-clean btn-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="la la-cog"></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-right">
-                                <ul class="navi navi-hover py-2">
-                                    <li class="navi-item">
-                                        <a class="navi-link" href="' . Router::url(['action' => 'view', $product->id]) . '">
-                                            <span class="navi-icon"><i class="la la-eye"></i></span>
-                                            <span class="navi-text">Afficher</span>
-                                        </a>
-                                    </li>
-                                    <li class="navi-item">
-                                        <a class="navi-link" href="' . Router::url(['action' => 'edit', $product->id]) . '">
-                                            <span class="navi-icon"><i class="la la-edit"></i></span>
-                                            <span class="navi-text">Modifier</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>';
-            
+            // Calculate stock details
+            $totalStock = 0;
+            $stockDetails = [];
+            if (!empty($product->whproducts)) {
+                foreach ($product->whproducts as $whp) {
+                    $qty = (int) $whp->quantity;
+                    $totalStock += $qty;
+                    if ($whp->has('warehouse') && $whp->warehouse) {
+                        $stockDetails[] = h($whp->warehouse->title) . ': ' . $qty;
+                    }
+                }
+            }
+            $stockTooltip = !empty($stockDetails) ? implode(", ", $stockDetails) : 'Aucun stock';
+
+            // Pieces per unit & Unit abbreviation
+            $piecesPerUnit = 1;
+            $unitAbbreviation = 'Pièce';
+            $productUniteStr = '';
+            if (!empty($product->productunites) && isset($product->productunites[0])) {
+                $pUnite = $product->productunites[0];
+                $piecesPerUnit = $pUnite->quantity > 0 ? $pUnite->quantity : 1;
+                if ($pUnite->has('unite')) {
+                    $unitAbbreviation = $pUnite->unite->abrev;
+                    $parentAbrev = ($pUnite->unite->has('parentunite') && $pUnite->unite->parentunite) ? $pUnite->unite->parentunite->abrev : 'pièce';
+                    $productUniteStr = $pUnite->quantity . ' ' . $parentAbrev . 's par ' . $pUnite->unite->title;
+                }
+            }
+
+            // Format stock display
+            $quantityInfo = $this->formatQuantity($totalStock, $piecesPerUnit, $unitAbbreviation);
+            $measurementQuantity = isset($product->measurement_quantity) ? $product->measurement_quantity : 0;
+            $totalMeasurement = $measurementQuantity * $totalStock;
+            $unitAbbr = ($product->has('measurement_unit') && $product->measurement_unit) ? $product->measurement_unit->abbreviation : '';
+            $formattedMeasurement = $this->formatMeasurement($totalMeasurement, $unitAbbr);
+
+            $displayQuantity = $quantityInfo['display'] ? $quantityInfo['display'] : '0 Pièce';
+            if ($totalMeasurement > 0 && !empty($unitAbbr)) {
+                $displayQuantity .= '<br><small>(' . $formattedMeasurement . ')</small>';
+            } else {
+                $displayQuantity .= '<br><small>(' . $totalStock . ' pièces)</small>';
+            }
+
+            $actions = '<a href="' . Router::url(['action' => 'view', $product->id]) . '" class="btn btn-sm btn-clean btn-icon" title="Afficher">
+                            <i class="la la-eye text-primary"></i>
+                        </a>';
+
             $statusBadges = [
                 0 => '<span class="label font-weight-bold label-lg label-light-danger label-inline">Innactif</span>',
                 1 => '<span class="label font-weight-bold label-lg label-light-success label-inline">Actif</span>',
@@ -331,27 +465,40 @@ class ProductsController extends AppController
                 'id' => $product->id, // For checkbox selection
                 'display_name' => [ // Example for a complex column with image and text
                     'image' => $imageUrl,
-                    'title' => h($product->title), 
+                    'title' => h($product->title),
                     'reference' => h($product->reference),
-                    'unite' => $product->has('unite') ? h($product->unite->title) : ''
+                    'unite' => $productUniteStr
                 ],
                 'reference' => h($product->reference), // If 'reference' is a separate column
                 'title' => h($product->title),       // If 'title' is a separate column
                 'category_title' => $product->has('category') ? h($product->category->title) : 'N/A',
-                'statut' => isset($statusBadges[$product->statut]) ? $statusBadges[$product->statut] : 'N/A',
+                'status' => $product->statut,
                 'actions' => $actions,
+                'quantity' => $displayQuantity,
+                'stock_tooltip' => $stockTooltip,
+                'buyingprice' => number_format($product->buyingprice, 2) . ' DH',
+                'sellingprice' => number_format($product->sellingprice, 2) . ' DH',
+                'commission' => number_format($product->commission, 2) . ' DH',
+                'supplier_name' => ($product->has('supplier') && $product->supplier) ? h($product->supplier->name) : 'N/A',
                 // Add other fields as needed by your JS DataTables column definitions
             ];
         }
-        
+
         $response = [
+            "meta" => [
+                'page' => $page,
+                'pages' => $pages,
+                'perpage' => $perpage,
+                'total' => $total,
+                'sort' => $sort,
+            ],
             "draw" => intval($draw),
-            "recordsTotal" => $recordsTotal,
-            "recordsFiltered" => $recordsFiltered,
+            "recordsTotal" => $total,
+            "recordsFiltered" => $total,
             "data" => $data,
         ];
 
-        $this->autoRender = false; 
+        $this->autoRender = false;
         $this->response = $this->response->withType('application/json');
         $this->response = $this->response->withStringBody(json_encode($response));
         return $this->response;
@@ -368,10 +515,10 @@ class ProductsController extends AppController
             $data = $this->request->getData();
 
             // Common fields
-            $commonWarehouseId = (int)$data['common_warehouse_id'];
+            $commonWarehouseId = (int) $data['common_warehouse_id'];
             $commonMovementType = $data['common_movement_type'];
             $commonNotes = isset($data['common_notes']) ? $data['common_notes'] : null;
-            
+
             $productsAdjustments = isset($data['products_adjustments']) ? $data['products_adjustments'] : [];
 
             $userId = $this->Auth->user('id');
@@ -390,8 +537,8 @@ class ProductsController extends AppController
             try {
                 $connection->begin();
                 foreach ($productsAdjustments as $productId => $adjustmentData) {
-                    $productId = (int)$productId; // product_id is also in $adjustmentData['product_id']
-                    
+                    $productId = (int) $productId; // product_id is also in $adjustmentData['product_id']
+
                     if (empty($adjustmentData['adjustment_type']) || !isset($adjustmentData['quantity']) || !is_numeric($adjustmentData['quantity'])) {
                         $errorCount++;
                         $errorMessages[] = "Ajustement invalide pour Produit ID: {$productId}. Type ou quantité manquant/incorrect.";
@@ -399,7 +546,7 @@ class ProductsController extends AppController
                     }
 
                     $adjustmentType = $adjustmentData['adjustment_type'];
-                    $quantity = (float)$adjustmentData['quantity'];
+                    $quantity = (float) $adjustmentData['quantity'];
 
                     $whproduct = $this->Whproducts->find()
                         ->where([
@@ -446,9 +593,9 @@ class ProductsController extends AppController
                     if ($whproduct->quantity < 0) {
                         $errorCount++;
                         $errorMessages[] = "Stock pour Produit ID: {$productId} ne peut pas être négatif. Ajustement ignoré.";
-                        continue; 
+                        continue;
                     }
-                    
+
                     if (!$this->Whproducts->save($whproduct)) {
                         $errorCount++;
                         $errorMessages[] = "Impossible de mettre à jour le stock pour Produit ID: {$productId}.";
@@ -488,10 +635,10 @@ class ProductsController extends AppController
                 $this->Flash->error(__('Erreur durant l\'ajustement de stock groupé: ') . $e->getMessage());
                 return $this->redirect($this->referer());
             }
-        } else { 
+        } else {
             // This is the initial request to display the batch_adjust_stock.ctp form
             // It could be a GET request if URL was bookmarked/typed, or POST from index page's hidden form
-            
+
             $product_ids_json = $this->request->getData('product_ids'); // From POST from index.ctp
             if (empty($product_ids_json)) {
                 $product_ids_json = $this->request->getQuery('product_ids'); // Fallback for GET
@@ -515,11 +662,11 @@ class ProductsController extends AppController
             ])->toArray();
 
             if (count($product_ids) > 0 && empty($products)) {
-                 $this->Flash->error(__('None of the selected products could be found or belong to your company.'));
+                $this->Flash->error(__('None of the selected products could be found or belong to your company.'));
                 return $this->redirect(['action' => 'index']);
             }
-             if (empty($products)) { // Handles case where $product_ids was empty array initially
-                 $this->Flash->error(__('No valid products found for batch stock adjustment.'));
+            if (empty($products)) { // Handles case where $product_ids was empty array initially
+                $this->Flash->error(__('No valid products found for batch stock adjustment.'));
                 return $this->redirect(['action' => 'index']);
             }
 
@@ -529,7 +676,7 @@ class ProductsController extends AppController
                 'keyField' => 'id',
                 'valueField' => 'title'
             ])->toArray();
-            
+
             $adjustmentTypes = [
                 'set_to' => 'Définir le stock à',
                 'increase_by' => 'Augmenter le stock de',

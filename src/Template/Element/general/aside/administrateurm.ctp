@@ -29,12 +29,6 @@
                         </a>
                     </li>
                     <li class="menu-item " aria-haspopup="true">
-                        <a href="<?= $this->Url->build(['controller' => 'products']); ?>" class="menu-link ">
-                            <i class="menu-bullet fas fa-sliders-h"></i>
-                            <span class="menu-text ml-2">Matières premières</span>
-                        </a>
-                    </li>
-                    <li class="menu-item " aria-haspopup="true">
                         <a href="<?= $this->Url->build('/packs'); ?>" class="menu-link ">
                             <i class="menu-bullet flaticon2-cube"></i>
                             <span class="menu-text ml-2">Articles
@@ -165,43 +159,6 @@
         </li>
 
         <li class="menu-section ">
-            <h4 class="menu-text">Fournisseurs
-            </h4>
-            <i class="menu-icon ki ki-bold-more-hor icon-md">
-            </i>
-        </li>
-        <li class="menu-item  menu-item-submenu" aria-haspopup="true" data-menu-toggle="hover">
-            <a href="javascript:;" class="menu-link menu-toggle">
-                <i class="menu-icon flaticon2-chart"></i>
-                <span class="menu-text">Achats</span>
-                <i class="menu-arrow"></i>
-            </a>
-            <div class="menu-submenu ">
-                <i class="menu-arrow">
-                </i>
-                <ul class="menu-subnav">
-                    <li class="menu-item " aria-haspopup="true">
-                        <a href="<?= $this->Url->build('/supplierorders'); ?>" class="menu-link ">
-                            <i class="menu-bullet flaticon-notepad"></i>
-                            <span class="menu-text ml-2">Bons de commande</span>
-                        </a>
-                    </li>
-                    <li class="menu-item" aria-haspopup="true">
-                        <a href="<?= $this->Url->build('/receipts'); ?>" class="menu-link ">
-                            <i class="menu-bullet flaticon2-box"></i>
-                            <span class="menu-text ml-2">Bons de réception</span>
-                        </a>
-                    </li>
-                    <li class="menu-item " aria-haspopup="true">
-                        <a href="<?= $this->Url->build('/suppliers'); ?>" class="menu-link ">
-                            <i class="menu-bullet flaticon2-group"></i>
-                            <span class="menu-text ml-2">Fournisseurs</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        <li class="menu-section ">
             <h4 class="menu-text">Mouvements</h4>
             <i class="menu-icon ki ki-bold-more-hor icon-md"></i>
         </li>
@@ -231,22 +188,6 @@
                         </a>
                     </li>
                     <li class="menu-item " aria-haspopup="true">
-                        <a href="<?= $this->Url->build('/slips/index/5'); ?>" class="menu-link ">
-                            <i class="menu-bullet flaticon2-size">
-                                <span></span>
-                            </i>
-                            <span class="menu-text ml-2">Bons des produits finis</span>
-                        </a>
-                    </li>
-                    <li class="menu-item " aria-haspopup="true">
-                        <a href="<?= $this->Url->build('/slips/index/6'); ?>" class="menu-link ">
-                            <i class="menu-bullet flaticon2-size">
-                                <span></span>
-                            </i>
-                            <span class="menu-text ml-2">Bons de conditionnement</span>
-                        </a>
-                    </li>
-                    <li class="menu-item " aria-haspopup="true">
                         <a href="<?= $this->Url->build('/slips/index/3'); ?>" class="menu-link ">
                             <i class="menu-bullet flaticon2-size">
                                 <span></span>
@@ -260,6 +201,61 @@
                                 <span></span>
                             </i>
                             <span class="menu-text ml-2">Rapport de stock</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        <li class="menu-section ">
+            <h4 class="menu-text">Gestion de Stock</h4>
+            <i class="menu-icon ki ki-bold-more-hor icon-md"></i>
+        </li>
+        <li class="menu-item  menu-item-submenu" aria-haspopup="true" data-menu-toggle="hover">
+            <a href="javascript:;" class="menu-link menu-toggle">
+                <i class="menu-icon ki ki-bold-sort"></i>
+                <span class="menu-text">Gestion des stocks</span>
+                <i class="menu-arrow"></i>
+            </a>
+            <div class="menu-submenu ">
+                <i class="menu-arrow"></i>
+                <ul class="menu-subnav">
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/categories/index/1/product'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon2-folder"></i>
+                            <span class="menu-text ml-2">Familles
+                            </span>
+                        </a>
+                    </li>
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/categories/index/2/product'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon2-files-and-folders"></i>
+                            <span class="menu-text ml-2">Catégories
+                            </span>
+                        </a>
+                    </li>
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build(['controller' => 'products']); ?>" class="menu-link ">
+                            <i class="menu-bullet fas fa-sliders-h"></i>
+                            <span class="menu-text ml-2">Matières premières</span>
+                        </a>
+                    </li>
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/supplierorders'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon-notepad"></i>
+                            <span class="menu-text ml-2">Bons de commande</span>
+                        </a>
+                    </li>
+                    <li class="menu-item" aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/receipts'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon2-box"></i>
+                            <span class="menu-text ml-2">Bons de réception</span>
+                        </a>
+                    </li>
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/suppliers'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon2-group"></i>
+                            <span class="menu-text ml-2">Fournisseurs</span>
                         </a>
                     </li>
                 </ul>
@@ -309,7 +305,7 @@
                             <span class="menu-text ml-2">Livreurs</span>
                         </a>
                     </li>
-                    
+
                     <li class="menu-item" aria-haspopup="true">
                         <a href="<?= $this->Url->build('/categoryusers'); ?>" class="menu-link ">
                             <i class="menu-bullet fas fa-user-tag"></i>
