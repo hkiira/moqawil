@@ -151,7 +151,7 @@
 				</h3>
 				<div class="info-row">
 					<span class="info-label">Période:</span>
-					<span style="font-weight: bold;"><?= date('d/m/Y', strtotime($startDate)) ?> - <?= date('d/m/Y', strtotime($endDate)) ?></span>
+					<span style="font-weight: bold;"><?= date('d/m/Y H:i', strtotime($startDate)) ?> - <?= date('d/m/Y H:i', strtotime($endDate)) ?></span>
 				</div>
 				<div class="info-row">
 					<span class="info-label">Entrepôt:</span>

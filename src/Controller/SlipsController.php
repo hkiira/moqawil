@@ -172,6 +172,11 @@ class SlipsController extends AppController
                 $slippackquantites[$slipproduct->id]['kgunite'] = $slipproduct->productunite->unite->parentunite->abrev;
                 $slippackquantites[$slipproduct->id]['qtcarsac'] = $slipproduct->productunite->quantity;
                 $slippackquantites[$slipproduct->id]['quantity'] = ($slipproduct->quantity);
+                $slippackquantites[$slipproduct->id]['saletype']['id'] = 1;
+                $slippackquantites[$slipproduct->id]['saletype']['title'] = 'Traditionnel';
+                $slippackquantites[$slipproduct->id]['measurement']['quantity'] = $slipproduct->quantity;
+                $slippackquantites[$slipproduct->id]['measurement']['title'] = '';
+                $slippackquantites[$slipproduct->id]['measurement']['price'] = $slipproduct->price;
             }
         } else {
 
@@ -207,7 +212,6 @@ class SlipsController extends AppController
                 }
             }
         }
-
         $this->set(compact('slip', 'slippackquantites', 'uservalidate', 'warehousetitle', 'warehousedtitle'));
 
     }
@@ -1014,6 +1018,7 @@ class SlipsController extends AppController
                 $slip->company_id = $this->Auth->user('company_id');
                 $slip->whnature_id = 2;
                 $slip->warehouse_id = 1;
+                $slip->statut = 2;
                 $slip->warehoused = 1;
                 $slip->sliptype_id = 6;
 
@@ -1212,7 +1217,11 @@ class SlipsController extends AppController
 
             foreach ($requestdatas['slipproducts'] as $key => $slipprd) {
                 //récuperer le le produit commandé
-                $slipproduct = $this->Slips->Slipproducts->get($slipprd['id'], ['contain' => ['Packs.Prices']]);
+                if ($slip->sliptype_id == 6) {
+                    $slipproduct = $this->Slips->Slipproducts->get($slipprd['id']);
+                } else {
+                    $slipproduct = $this->Slips->Slipproducts->get($slipprd['id'], ['contain' => ['Packs.Prices']]);
+                }
 
                 // si le bon est un bon de retour récupérer la nature du produit retourné
                 if ($slipproduct->whnature_id == 99) {
@@ -1222,7 +1231,6 @@ class SlipsController extends AppController
                     $increment++;
 
                 } elseif ($slip->sliptype_id == 6) {
-                    $slipproduct = $this->Slips->Slipproducts->get($slipprd['id']);
 
                     //récupérer le produit du stock a décharger
                     $whproduct = $this->Slips->Slipproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehouse->id, 'item_id' => $slipproduct->item_id, 'item_type' => $slipproduct->item_type])->first();
@@ -2658,8 +2666,8 @@ class SlipsController extends AppController
         $warehouseId = $this->Auth->user('defaultwh');
 
         // Default dates: current month
-        $startDate = date('Y-m-01');
-        $endDate = date('Y-m-t');
+        $startDate = date('Y-m-01 00:00:00');
+        $endDate = date('Y-m-t 23:59:59');
         $userId = null;
         $selectedUser = null;
 
@@ -2677,6 +2685,14 @@ class SlipsController extends AppController
             if (!empty($data['user_id'])) {
                 $userId = (int) $data['user_id'];
             }
+        }
+
+        // Ensure date fields have time components
+        if (strlen($startDate) <= 10) {
+            $startDate .= ' 00:00:00';
+        }
+        if (strlen($endDate) <= 10) {
+            $endDate .= ' 23:59:59';
         }
 
         $users = $this->getStockReportUsers($companyId, $warehouseId);
@@ -2706,8 +2722,9 @@ class SlipsController extends AppController
             ])
             ->where([
                 'Slips.company_id' => $companyId,
-                'Slips.created >=' => $startDate . ' 00:00:00',
-                'Slips.created <=' => $endDate . ' 23:59:59',
+                'Slips.created >=' => $startDate,
+                'Slips.created <=' => $endDate,
+                'Slips.sliptype_id' => 1,
             ]);
 
         if ($userId) {
@@ -2716,9 +2733,9 @@ class SlipsController extends AppController
 
         $slips = $slipsQuery->all();
 
-        // Get purchase orders (ordertype_id = 2) in date range
+        // Get purchase orders
         $Orders = $this->loadModel('Orders');
-        $purchaseOrders = $Orders->find()
+        $purchaseQuery = $Orders->find()
             ->contain([
                 'Orderpacks' => [
                     'Packs' => [
@@ -2730,14 +2747,17 @@ class SlipsController extends AppController
             ])
             ->where([
                 'Orders.company_id' => $companyId,
-                'Orders.ordertype_id' => 2, // purchase orders
-                'Orders.created >=' => $startDate . ' 00:00:00',
-                'Orders.created <=' => $endDate . ' 23:59:59',
+                'Orders.ordertype_id' => 2,
+                'Orders.created >=' => $startDate,
+                'Orders.created <=' => $endDate,
                 'Orders.statut >=' => 1,
-            ])
-            ->all();
+            ]);
+        if ($userId) {
+            $purchaseQuery->where(['Orders.user_id' => $userId]);
+        }
+        $purchaseOrders = $purchaseQuery->all();
 
-        // Get sales orders (ordertype_id = 1) in date range
+        // Get sales orders
         if ($useExitslipOrders) {
             $Exitslips = $this->loadModel('Exitslips');
             $exitslips = $Exitslips->find()
@@ -2758,8 +2778,8 @@ class SlipsController extends AppController
                 ->where([
                     'Exitslips.company_id' => $companyId,
                     'Exitslips.user_id' => $userId,
-                    'Exitslips.created >=' => $startDate . ' 00:00:00',
-                    'Exitslips.created <=' => $endDate . ' 23:59:59',
+                    'Exitslips.created >=' => $startDate,
+                    'Exitslips.created <=' => $endDate,
                 ])
                 ->all();
 
@@ -2786,9 +2806,9 @@ class SlipsController extends AppController
                 ])
                 ->where([
                     'Orders.company_id' => $companyId,
-                    'Orders.ordertype_id' => 1, // sales orders
-                    'Orders.created >=' => $startDate . ' 00:00:00',
-                    'Orders.created <=' => $endDate . ' 23:59:59',
+                    'Orders.ordertype_id' => 1,
+                    'Orders.created >=' => $startDate,
+                    'Orders.created <=' => $endDate,
                     'Orders.statut >=' => 1,
                 ]);
 
@@ -2799,18 +2819,95 @@ class SlipsController extends AppController
             $salesOrders = $salesQuery->all();
         }
 
+        $Prices = $this->loadModel('Prices');
+        $MeasurementUnits = $this->loadModel('MeasurementUnits');
+        $baseUnitByType = [];
+        $basePriceByPack = [];
+
+        $resolveBaseUnitForType = function ($type) use ($MeasurementUnits, &$baseUnitByType) {
+            if (!$type) {
+                return null;
+            }
+            if (!array_key_exists($type, $baseUnitByType)) {
+                $baseUnitByType[$type] = $MeasurementUnits->find('all')
+                    ->where(['conversion_factor' => 1, 'type' => $type])
+                    ->first();
+            }
+            return $baseUnitByType[$type];
+        };
+
+        $resolvePackBasePrice = function ($pack) use ($Prices, $companyId, $warehouseId, $resolveBaseUnitForType, &$basePriceByPack) {
+            if (!$pack || empty($pack->id)) {
+                return 0.0;
+            }
+
+            $packId = (int) $pack->id;
+            if (array_key_exists($packId, $basePriceByPack)) {
+                return $basePriceByPack[$packId];
+            }
+
+            $price = $Prices->find('all')
+                ->where([
+                    'Prices.pack_id' => $packId,
+                    'Prices.customertype_id' => 2,
+                    'Prices.company_id' => $companyId,
+                    'OR' => [
+                        ['Prices.warehouse_id' => $warehouseId],
+                        ['Prices.warehouse_id IS' => null],
+                    ],
+                ])
+                ->order(['Prices.warehouse_id' => 'DESC', 'Prices.id' => 'ASC'])
+                ->first();
+
+            if (!$price) {
+                $price = $Prices->find('all')
+                    ->where([
+                        'Prices.pack_id' => $packId,
+                        'Prices.customertype_id' => 2,
+                        'Prices.company_id' => $companyId,
+                    ])
+                    ->order(['Prices.warehouse_id' => 'DESC', 'Prices.id' => 'ASC'])
+                    ->first();
+            }
+
+            $normalizedPrice = $price ? (float) $price->price : 0.0;
+
+            if (
+                isset($pack->measurement_unit)
+                && $pack->measurement_unit
+                && isset($pack->measurement_unit->type)
+                && isset($pack->measurement_quantity)
+            ) {
+                $factorOne = $resolveBaseUnitForType($pack->measurement_unit->type);
+                $conversionFactor = (float) ($pack->measurement_unit->conversion_factor ?: 1);
+                $measurementQuantity = (float) ($pack->measurement_quantity ?: 1);
+                $divider = $measurementQuantity * $conversionFactor;
+                if ($factorOne && $divider > 0) {
+                    $normalizedPrice = $normalizedPrice / $divider;
+                }
+            }
+
+            $basePriceByPack[$packId] = $normalizedPrice;
+            return $basePriceByPack[$packId];
+        };
+
+        $resolveRealLinePrice = function ($orderpack) use ($resolvePackBasePrice) {
+            $pack = $orderpack->pack ?? null;
+            if ($pack && (int) ($pack->saletype_id ?? 0) === 4) {
+                return $resolvePackBasePrice($pack);
+            }
+            return (float) $orderpack->price;
+        };
+
         // Calculate totals by product
         $productData = [];
 
-        // Process slips (charges)
         foreach ($slips as $slip) {
             foreach ($slip->slipproducts as $slipproduct) {
                 $packId = $slipproduct->item_id;
                 if (!isset($productData[$packId])) {
                     $pack = $slipproduct->pack;
 
-                    // Get measurement unit conversion
-                    $MeasurementUnits = $this->loadModel('MeasurementUnits');
                     $factorOne = null;
                     if ($pack->measurement_unit) {
                         $factorOne = $MeasurementUnits->find('all')
@@ -2832,15 +2929,12 @@ class SlipsController extends AppController
             }
         }
 
-        // Process purchase orders (charges)
         foreach ($purchaseOrders as $order) {
             foreach ($order->orderpacks as $orderpack) {
                 $packId = $orderpack->pack_id;
                 if (!isset($productData[$packId])) {
                     $pack = $orderpack->pack;
 
-                    // Get measurement unit conversion
-                    $MeasurementUnits = $this->loadModel('MeasurementUnits');
                     $factorOne = null;
                     if ($pack->measurement_unit) {
                         $factorOne = $MeasurementUnits->find('all')
@@ -2862,7 +2956,6 @@ class SlipsController extends AppController
             }
         }
 
-        // Process sales orders (deductions)
         foreach ($salesOrders as $order) {
             foreach ($order->orderpacks as $orderpack) {
                 $packId = $orderpack->pack_id;
@@ -2870,15 +2963,10 @@ class SlipsController extends AppController
                 if (!isset($productData[$packId])) {
                     $pack = $orderpack->pack;
 
-                    // Get measurement unit conversion
-                    $MeasurementUnits = $this->loadModel('MeasurementUnits');
                     $factorOne = null;
                     if ($pack->measurement_unit) {
-                        $factorOne = $MeasurementUnits->find('all')
-                            ->where(['conversion_factor' => 1, 'type' => $pack->measurement_unit->type])
-                            ->first();
+                        $factorOne = $resolveBaseUnitForType($pack->measurement_unit->type);
                     }
-
                     $productData[$packId] = [
                         'pack' => $pack,
                         'charged_slips' => 0,
@@ -2889,20 +2977,12 @@ class SlipsController extends AppController
                         'measurement_base_unit' => $factorOne,
                     ];
                 }
-                if ($useExitslipOrders && ($orderpackStatut === 5 || $orderpackStatut === 6 || $orderpackStatut === 8)) {
-                    $productData[$packId]['charged_slips'] += (float) $orderpack->quantity;
-                }
                 if ($useExitslipOrders) {
-                    if ($orderpackStatut === 8) {
-                        $productData[$packId]['charged_purchases'] += (float) $orderpack->quantity;
-                        continue;
-                    }
-                    if ($orderpackStatut !== 6) {
-                        continue;
-                    }
+                    $productData[$packId]['charged_slips'] += (float) $orderpack->quantity;
                 }
                 $productData[$packId]['sold'] += (float) $orderpack->quantity;
                 $productData[$packId]['sold_amount'] += ((float) $orderpack->quantity * (float) $orderpack->price);
+                $productData[$packId]['real_amount'] += ((float) $orderpack->quantity * $resolveRealLinePrice($orderpack));
             }
         }
 
@@ -2910,30 +2990,75 @@ class SlipsController extends AppController
         $slipOrderAmount = 0;
         $purchaseOrderAmount = 0;
         $salesOrderAmount = 0;
+        $salesRealAmount = 0;
 
         foreach ($slips as $slip) {
+            $total_amount = 0;
+            foreach ($slip->slipproducts as $slipproduct) {
+                $total_amount += ((float) $slipproduct->quantity * (float) $slipproduct->price);
+            }
+            $slip->total_amount = $total_amount;
             $slipOrderAmount += (float) $slip->total_amount;
         }
 
         foreach ($purchaseOrders as $order) {
+            $total_amount = 0;
+            foreach ($order->orderpacks as $orderpack) {
+                $total_amount += ((float) $orderpack->quantity * (float) $orderpack->price);
+            }
+            $order->total_amount = $total_amount;
             $purchaseOrderAmount += (float) $order->total_amount;
         }
 
         foreach ($salesOrders as $order) {
+            $total_amount = 0;
+            $real_amount = 0;
+            $purchase_amount_for_sales = 0;
+            foreach ($order->orderpacks as $orderpack) {
+                $lineAmount = ((float) $orderpack->quantity * $orderpack->price);
+                $lineRealAmount = ((float) $orderpack->quantity * $resolveRealLinePrice($orderpack));
+                if ($useExitslipOrders) {
+                    $orderpackStatut = isset($orderpack->statut) ? (int) $orderpack->statut : null;
+                    if ($orderpackStatut === 6) {
+                        $total_amount += $lineAmount;
+                        $real_amount += $lineRealAmount;
+                        continue;
+                    }
+                    if ($orderpackStatut === 8) {
+                        $purchase_amount_for_sales += $lineAmount;
+                    }
+                    continue;
+                }
+                $total_amount += $lineAmount;
+                $real_amount += $lineRealAmount;
+            }
+            $order->total_amount = $total_amount;
+            $order->real_amount = $real_amount;
             $salesOrderAmount += (float) $order->total_amount;
+            $salesRealAmount += (float) $order->real_amount;
+            if ($useExitslipOrders) {
+                $purchaseOrderAmount += $purchase_amount_for_sales;
+                $order->purchase_amount = $purchase_amount_for_sales;
+            }
         }
 
         // Calculate remaining stock amount
         $totalChargedAmount = $slipOrderAmount + $purchaseOrderAmount;
         $remainingStockAmount = $totalChargedAmount - $salesOrderAmount;
 
-        // Calculate remaining stock for each product
         foreach ($productData as $packId => &$data) {
             $data['total_charged'] = $data['charged_slips'] + $data['charged_purchases'];
             $data['remaining_stock'] = $data['total_charged'] - $data['sold'];
         }
 
-        $this->set(compact('productData', 'startDate', 'endDate', 'userId', 'users', 'slips', 'purchaseOrders', 'salesOrders', 'slipOrderAmount', 'purchaseOrderAmount', 'salesOrderAmount', 'remainingStockAmount'));
+        // Get warehouse info
+        $warehouse = $this->Slips->Warehouses->get($warehouseId);
+
+        // Get company info
+        $Companies = $this->loadModel('Companies');
+        $company = $Companies->get($companyId);
+
+        $this->set(compact('productData', 'startDate', 'endDate', 'userId', 'selectedUser', 'users', 'warehouse', 'company', 'slips', 'purchaseOrders', 'salesOrders', 'slipOrderAmount', 'purchaseOrderAmount', 'salesOrderAmount', 'salesRealAmount', 'remainingStockAmount'));
     }
 
     /**
@@ -2946,9 +3071,17 @@ class SlipsController extends AppController
         $warehouseId = $this->Auth->user('defaultwh');
 
         // Get dates from query parameters
-        $startDate = $this->request->getQuery('start_date', date('Y-m-01'));
-        $endDate = $this->request->getQuery('end_date', date('Y-m-t'));
+        $startDate = $this->request->getQuery('start_date', date('Y-m-01 00:00:00'));
+        $endDate = $this->request->getQuery('end_date', date('Y-m-t 23:59:59'));
         $userId = $this->request->getQuery('user_id');
+
+        // Ensure date fields have time components
+        if (strlen($startDate) <= 10) {
+            $startDate .= ' 00:00:00';
+        }
+        if (strlen($endDate) <= 10) {
+            $endDate .= ' 23:59:59';
+        }
 
         $users = $this->getStockReportUsers($companyId, $warehouseId);
         $selectedUser = null;
@@ -2975,8 +3108,8 @@ class SlipsController extends AppController
                 ]
             ])
             ->where([
-                'Slips.created >=' => $startDate . ' 00:00:00',
-                'Slips.created <=' => $endDate . ' 23:59:59',
+                'Slips.created >=' => $startDate,
+                'Slips.created <=' => $endDate,
                 'Slips.sliptype_id' => 1,
             ]);
 
@@ -2999,8 +3132,8 @@ class SlipsController extends AppController
             ])
             ->where([
                 'Orders.ordertype_id' => 2,
-                'Orders.created >=' => $startDate . ' 00:00:00',
-                'Orders.created <=' => $endDate . ' 23:59:59',
+                'Orders.created >=' => $startDate,
+                'Orders.created <=' => $endDate,
             ]);
         if ($userId) {
             $purchaseQuery->where(['Orders.user_id' => $userId]);
@@ -3029,8 +3162,8 @@ class SlipsController extends AppController
                 ->where([
                     'Exitslips.company_id' => $companyId,
                     'Exitslips.user_id' => $userId,
-                    'Exitslips.created >=' => $startDate . ' 00:00:00',
-                    'Exitslips.created <=' => $endDate . ' 23:59:59',
+                    'Exitslips.created >=' => $startDate,
+                    'Exitslips.created <=' => $endDate,
                 ])
                 ->all();
 
@@ -3057,8 +3190,8 @@ class SlipsController extends AppController
                 ])
                 ->where([
                     'Orders.ordertype_id' => 1,
-                    'Orders.created >=' => $startDate . ' 00:00:00',
-                    'Orders.created <=' => $endDate . ' 23:59:59',
+                    'Orders.created >=' => $startDate,
+                    'Orders.created <=' => $endDate,
                 ]);
 
             if ($userId) {

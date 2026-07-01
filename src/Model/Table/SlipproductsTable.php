@@ -46,19 +46,19 @@ class SlipproductsTable extends Table
 
         $this->belongsTo('Products', [
             'foreignKey' => 'item_id',
-            'joinType' => 'INNER',
+            'joinType' => 'LEFT',
         ]);
         $this->belongsTo('Packs', [
             'foreignKey' => 'item_id',
-            'joinType' => 'INNER',
+            'joinType' => 'LEFT',
         ]);
         $this->belongsTo('Productunites', [
             'foreignKey' => 'unity_id',
-            'joinType' => 'INNER',
+            'joinType' => 'LEFT',
         ]);
         $this->belongsTo('Packunites', [
             'foreignKey' => 'unity_id',
-            'joinType' => 'INNER',
+            'joinType' => 'LEFT',
         ]);
         $this->belongsTo('Slips', [
             'foreignKey' => 'slip_id',

@@ -47,6 +47,25 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
         </div>
     </div>
 
+    <!-- Quantity Formatting Helper -->
+    <?php
+    $formatQty = function($qty, $saletypeId, $displayData) {
+        if ($saletypeId == 1 || $saletypeId == 2 || $saletypeId == 3) {
+            if ($qty % $displayData['qtcarsac']) {
+                if (intVal($qty / $displayData['qtcarsac']) > 0) {
+                    return intVal($qty / $displayData['qtcarsac']) . ' ' . h($displayData['cartsac']) . ' et ' . ($qty % $displayData['qtcarsac']) . ' ' . h($displayData['kgunite']);
+                } else {
+                    return ($qty % $displayData['qtcarsac']) . ' ' . h($displayData['kgunite']);
+                }
+            } else {
+                return intVal($qty / $displayData['qtcarsac']) . ' ' . h($displayData['cartsac']);
+            }
+        } else {
+            return number_format($qty, 2) . ' ' . h($displayData['measurement_title'] ?? '');
+        }
+    };
+    ?>
+
     <!-- Summary Cards -->
     <div class="row mb-5">
         <div class="col-lg-3">
@@ -64,6 +83,7 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                         echo number_format($totalSlips, 2);
                         ?>
                     </div>
+                    <div class="font-weight-bold text-dark font-size-sm mt-1"><?= number_format($slipOrderAmount, 2) ?> DH</div>
                     <div class="font-weight-bold text-muted font-size-sm">Total chargé (Bons)</div>
                 </div>
             </div>
@@ -83,7 +103,8 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                         echo number_format($totalPurchases, 2);
                         ?>
                     </div>
-                    <div class="font-weight-bold text-muted font-size-sm">Total chargé (Achats)</div>
+                    <div class="font-weight-bold text-dark font-size-sm mt-1"><?= number_format($purchaseOrderAmount, 2) ?> DH</div>
+                    <div class="font-weight-bold text-muted font-size-sm">Total chargé (Retours)</div>
                 </div>
             </div>
         </div>
@@ -102,6 +123,7 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                         echo number_format($totalSold, 2);
                         ?>
                     </div>
+                    <div class="font-weight-bold text-dark font-size-sm mt-1"><?= number_format($salesOrderAmount, 2) ?> DH</div>
                     <div class="font-weight-bold text-muted font-size-sm">Total vendu</div>
                 </div>
             </div>
@@ -121,6 +143,7 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                         echo number_format($totalRemaining, 2);
                         ?>
                     </div>
+                    <div class="font-weight-bold text-dark font-size-sm mt-1"><?= number_format($remainingStockAmount, 2) ?> DH</div>
                     <div class="font-weight-bold text-muted font-size-sm">Stock restant</div>
                 </div>
             </div>
@@ -131,7 +154,7 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
     <div class="card card-custom">
         <div class="card-header">
             <div class="card-title">
-                <h3 class="card-label">Détails par produit (<?= date('d/m/Y', strtotime($startDate)) ?> - <?= date('d/m/Y', strtotime($endDate)) ?>)</h3>
+                <h3 class="card-label">Détails par produit (<?= date('d/m/Y H:i', strtotime($startDate)) ?> - <?= date('d/m/Y H:i', strtotime($endDate)) ?>)</h3>
             </div>
         </div>
         <div class="card-body">
@@ -141,51 +164,88 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                         <tr class="bg-light">
                             <th>Produit</th>
                             <th class="text-right">Chargé (Bons)</th>
-                            <th class="text-right">Chargé (Achats)</th>
+                            <th class="text-right">Chargé (Retours)</th>
                             <th class="text-right">Total Chargé</th>
-                            <th class="text-right">Vendu</th>
+                            <th class="text-right">Vendu(Commandes)</th>
+                            <th class="text-right">Total Livré</th>
                             <th class="text-right">Stock Restant</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($productData)): ?>
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="7" class="text-center text-muted">
                                     Aucune donnée disponible pour cette période
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($productData as $packId => $data): ?>
+                                <?php 
+                                $pack = $data['pack'];
+                                $saletypeId = isset($pack->saletype) ? $pack->saletype->id : null;
+                                
+                                // Prepare display values based on saletype
+                                $displayData = [];
+                                if ($saletypeId == 1 || $saletypeId == 2 || $saletypeId == 3) {
+                                    $cartsac = isset($pack->packunites[0]) ? $pack->packunites[0]->unite->title : '';
+                                    $kgunite = isset($pack->packunites[0]) ? $pack->packunites[0]->unite->parentunite->abrev : '';
+                                    $qtcarsac = isset($pack->packunites[0]) ? $pack->packunites[0]->quantity : 1;
+                                    
+                                    $displayData = [
+                                        'cartsac' => $cartsac,
+                                        'kgunite' => $kgunite,
+                                        'qtcarsac' => $qtcarsac,
+                                    ];
+                                } else {
+                                    if ($data['measurement_base_unit']) {
+                                        $measurementTitle = $data['measurement_base_unit']->abbreviation;
+                                    } else {
+                                        $measurementTitle = isset($pack->measurement_unit) ? $pack->measurement_unit->abbreviation : '';
+                                    }
+                                    
+                                    $displayData = [
+                                        'measurement_title' => $measurementTitle,
+                                    ];
+                                }
+                                ?>
                                 <tr>
                                     <td>
-                                        <span class="font-weight-bolder"><?= h($data['pack']->title ?? 'N/A') ?></span>
-                                        <?php if (!empty($data['pack']->code)): ?>
-                                            <br><small class="text-muted"><?= h($data['pack']->code) ?></small>
+                                        <span class="font-weight-bolder"><?= h($pack->title ?? 'N/A') ?></span>
+                                        <?php if (!empty($pack->code)): ?>
+                                            <br><small class="text-muted"><?= h($pack->code) ?></small>
+                                        <?php endif; ?>
+                                        <?php if ($saletypeId == 1 || $saletypeId == 2 || $saletypeId == 3): ?>
+                                            <br><small class="text-muted">
+                                                (<?= h($displayData['cartsac']) ?> = <?= number_format($displayData['qtcarsac'], 0) ?> <?= h($displayData['kgunite']) ?>)
+                                            </small>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-right">
-                                        <span class="label label-inline label-light-success">
-                                            <?= number_format($data['charged_slips'], 2) ?>
+                                        <span class="label label-inline label-light-success font-weight-bold">
+                                            <?= $formatQty($data['charged_slips'], $saletypeId, $displayData) ?>
                                         </span>
                                     </td>
                                     <td class="text-right">
-                                        <span class="label label-inline label-light-info">
-                                            <?= number_format($data['charged_purchases'], 2) ?>
+                                        <span class="label label-inline label-light-info font-weight-bold">
+                                            <?= $formatQty($data['charged_purchases'], $saletypeId, $displayData) ?>
                                         </span>
                                     </td>
                                     <td class="text-right font-weight-bolder">
-                                        <?= number_format($data['total_charged'], 2) ?>
+                                        <?= $formatQty($data['total_charged'], $saletypeId, $displayData) ?>
                                     </td>
                                     <td class="text-right">
-                                        <span class="label label-inline label-light-danger">
-                                            <?= number_format($data['sold'], 2) ?>
+                                        <span class="label label-inline label-light-danger font-weight-bold">
+                                            <?= $formatQty($data['sold'], $saletypeId, $displayData) ?>
                                         </span>
+                                    </td>
+                                    <td class="text-right font-weight-bolder">
+                                        <?= number_format($data['sold_amount'], 2) ?> DH
                                     </td>
                                     <td class="text-right font-weight-bolder">
                                         <?php if ($data['remaining_stock'] < 0): ?>
-                                            <span class="text-danger"><?= number_format($data['remaining_stock'], 2) ?></span>
+                                            <span class="text-danger"><?= $formatQty($data['remaining_stock'], $saletypeId, $displayData) ?></span>
                                         <?php else: ?>
-                                            <span class="text-primary"><?= number_format($data['remaining_stock'], 2) ?></span>
+                                            <span class="text-primary"><?= $formatQty($data['remaining_stock'], $saletypeId, $displayData) ?></span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -197,6 +257,7 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
                                 <td class="text-right"><?= number_format($totalPurchases, 2) ?></td>
                                 <td class="text-right"><?= number_format($totalSlips + $totalPurchases, 2) ?></td>
                                 <td class="text-right"><?= number_format($totalSold, 2) ?></td>
+                                <td class="text-right"><?= number_format($salesOrderAmount, 2) ?> DH</td>
                                 <td class="text-right"><?= number_format($totalRemaining, 2) ?></td>
                             </tr>
                         <?php endif; ?>
@@ -205,6 +266,152 @@ $this->assign('edit', '<button type="button" id="print-report" class="btn btn-su
             </div>
         </div>
     </div>
+
+    <!-- Detailed Transaction History -->
+    <?php if (!empty($productData)): ?>
+        <div class="card card-custom mt-5">
+            <div class="card-header">
+                <div class="card-title">
+                    <h3 class="card-label">Historique Détaillé des Mouvements</h3>
+                </div>
+            </div>
+            <div class="card-body">
+                <?php 
+                $productCount = 0;
+                foreach ($productData as $packId => $data): 
+                    $productCount++;
+                    $pack = $data['pack'];
+                    $saletypeId = isset($pack->saletype) ? $pack->saletype->id : null;
+                    
+                    // Prepare display values based on saletype
+                    $displayData = [];
+                    if ($saletypeId == 1 || $saletypeId == 2 || $saletypeId == 3) {
+                        $cartsac = isset($pack->packunites[0]) ? $pack->packunites[0]->unite->title : '';
+                        $kgunite = isset($pack->packunites[0]) ? $pack->packunites[0]->unite->parentunite->abrev : '';
+                        $qtcarsac = isset($pack->packunites[0]) ? $pack->packunites[0]->quantity : 1;
+                        
+                        $displayData = [
+                            'cartsac' => $cartsac,
+                            'kgunite' => $kgunite,
+                            'qtcarsac' => $qtcarsac,
+                        ];
+                    } else {
+                        if ($data['measurement_base_unit']) {
+                            $measurementTitle = $data['measurement_base_unit']->abbreviation;
+                        } else {
+                            $measurementTitle = isset($pack->measurement_unit) ? $pack->measurement_unit->abbreviation : '';
+                        }
+                        
+                        $displayData = [
+                            'measurement_title' => $measurementTitle,
+                        ];
+                    }
+                    
+                    // Collect transactions
+                    $transactions = [];
+                    foreach ($slips as $slip) {
+                        foreach ($slip->slipproducts as $slipproduct) {
+                            if ($slipproduct->item_id == $packId) {
+                                $transactions[] = [
+                                    'type' => 'slip',
+                                    'date' => $slip->created,
+                                    'code' => $slip->code,
+                                    'quantity' => $slipproduct->quantity,
+                                    'price' => $slipproduct->price,
+                                    'info' => isset($slip->warehouse) ? $slip->warehouse->title : 'N/A'
+                                ];
+                            }
+                        }
+                    }
+                    
+                    foreach ($purchaseOrders as $order) {
+                        foreach ($order->orderpacks as $orderpack) {
+                            if ($orderpack->pack_id == $packId) {
+                                $transactions[] = [
+                                    'type' => 'purchase',
+                                    'date' => $order->created,
+                                    'code' => $order->code,
+                                    'quantity' => $orderpack->quantity,
+                                    'price' => $orderpack->price,
+                                    'info' => isset($order->supplier) ? $order->supplier->name : 'N/A'
+                                ];
+                            }
+                        }
+                    }
+                    
+                    foreach ($salesOrders as $order) {
+                        foreach ($order->orderpacks as $orderpack) {
+                            if ($orderpack->pack_id == $packId) {
+                                $transactions[] = [
+                                    'type' => 'sale',
+                                    'date' => $order->created,
+                                    'code' => $order->code,
+                                    'quantity' => $orderpack->quantity,
+                                    'price' => $orderpack->price,
+                                    'info' => (isset($order->customer) ? $order->customer->name : 'N/A') . ' - ' . (isset($order->user) ? $order->user->firstname : 'N/A')
+                                ];
+                            }
+                        }
+                    }
+                    
+                    if (empty($transactions)) continue;
+                ?>
+                    <div class="mb-8">
+                        <h4 class="bg-light-primary p-3 rounded text-primary font-weight-bold font-size-h6 mb-3">
+                            <?= h($pack->title) ?> <?= !empty($pack->code) ? '(' . h($pack->code) . ')' : '' ?>
+                        </h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-vertical-center">
+                                <thead>
+                                    <tr class="bg-light">
+                                        <th style="width: 15%;">Date</th>
+                                        <th style="width: 15%;">Type</th>
+                                        <th style="width: 20%;">Code</th>
+                                        <th class="text-right" style="width: 15%;">Qté</th>
+                                        <th class="text-right" style="width: 15%;">Prix</th>
+                                        <th class="text-right" style="width: 20%;">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($transactions as $trans): ?>
+                                        <tr>
+                                            <td><?= date('d/m/y H:i', strtotime($trans['date'])) ?></td>
+                                            <td>
+                                                <?php if ($trans['type'] == 'slip'): ?>
+                                                    <span class="label label-inline label-light-primary font-weight-bold">Bon</span>
+                                                <?php elseif ($trans['type'] == 'purchase'): ?>
+                                                    <span class="label label-inline label-light-success font-weight-bold">Retour</span>
+                                                <?php else: ?>
+                                                    <span class="label label-inline label-light-danger font-weight-bold">Vente</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="font-weight-bold"><?= h($trans['code']) ?></span>
+                                                <br><small class="text-muted"><?= h($trans['info']) ?></small>
+                                            </td>
+                                            <td class="text-right">
+                                                <?= $formatQty($trans['quantity'], $saletypeId, $displayData) ?>
+                                            </td>
+                                            <td class="text-right"><?= number_format($trans['price'], 2) ?> DH</td>
+                                            <td class="text-right font-weight-bolder"><?= number_format($trans['quantity'] * $trans['price'], 2) ?> DH</td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                
+                <?php if (count($productData) > 20): ?>
+                    <p class="text-center text-muted font-italic mt-5">
+                        Note: Seuls les 20 premiers produits sont affichés dans l'historique détaillé pour des raisons de performance.
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
 
     <!-- Print Styles -->
     <style type="text/css" media="print">
@@ -245,9 +452,9 @@ $(document).ready(function() {
     var end = $('#date_end').val() ? moment($('#date_end').val()) : moment().endOf('month');
     
     function cb(start, end) {
-        $('#daterange_display').val(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
-        $('#date_start').val(start.format('YYYY-MM-DD'));
-        $('#date_end').val(end.format('YYYY-MM-DD'));
+        $('#daterange_display').val(start.format('DD/MM/YYYY HH:mm') + ' - ' + end.format('DD/MM/YYYY HH:mm'));
+        $('#date_start').val(start.format('YYYY-MM-DD HH:mm:ss'));
+        $('#date_end').val(end.format('YYYY-MM-DD HH:mm:ss'));
     }
     
     $('#kt_daterangepicker_stock').daterangepicker({
@@ -256,8 +463,10 @@ $(document).ready(function() {
         cancelClass: 'btn-secondary',
         startDate: start,
         endDate: end,
+        timePicker: true,
+        timePicker24Hour: true,
         locale: {
-            format: 'DD/MM/YYYY',
+            format: 'DD/MM/YYYY HH:mm',
             applyLabel: 'Appliquer',
             cancelLabel: 'Annuler',
             fromLabel: 'De',
@@ -268,12 +477,12 @@ $(document).ready(function() {
             firstDay: 1
         },
         ranges: {
-            "Aujourd'hui": [moment(), moment()],
-            'Hier': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            '7 derniers jours': [moment().subtract(6, 'days'), moment()],
-            '30 derniers jours': [moment().subtract(29, 'days'), moment()],
-            'Ce mois': [moment().startOf('month'), moment().endOf('month')],
-            'Mois dernier': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            "Aujourd'hui": [moment().startOf('day'), moment().endOf('day')],
+            'Hier': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
+            '7 derniers jours': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
+            '30 derniers jours': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
+            'Ce mois': [moment().startOf('month').startOf('day'), moment().endOf('month').endOf('day')],
+            'Mois dernier': [moment().subtract(1, 'month').startOf('month').startOf('day'), moment().subtract(1, 'month').endOf('month').endOf('day')]
         }
     }, cb);
     

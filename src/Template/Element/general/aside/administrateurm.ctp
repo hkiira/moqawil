@@ -252,6 +252,15 @@
                             <span class="menu-text ml-2">Bons de réception</span>
                         </a>
                     </li>
+
+                    <li class="menu-item " aria-haspopup="true">
+                        <a href="<?= $this->Url->build('/slips/index/6'); ?>" class="menu-link ">
+                            <i class="menu-bullet flaticon2-size">
+                                <span></span>
+                            </i>
+                            <span class="menu-text ml-2">Bons de Conditionnement</span>
+                        </a>
+                    </li>
                     <li class="menu-item " aria-haspopup="true">
                         <a href="<?= $this->Url->build('/suppliers'); ?>" class="menu-link ">
                             <i class="menu-bullet flaticon2-group"></i>
