@@ -108,19 +108,13 @@ class ProductsController extends AppController
             }
             $datas['whproducts'] = $whproducts;
 
-            foreach ($datas['productunites'] as $key => $packun) {
-                $datas['productunites'][$key]['company_id'] = $this->Auth->user('company_id');
-                $datas['productunites'][$key]['statut'] = 1;
-            }
-
-
             $increment = 0;
             $packdata = [];
             $datas['sellingprice'] = $datas['buyingprice'];
             $datas['reference'] = 'PR';
             $whproducts = $datas['whproducts'];
 
-            $product = $this->Products->patchEntity($product, $datas, ['associated' => ['Photos', 'Productunites']]);
+            $product = $this->Products->patchEntity($product, $datas, ['associated' => ['Photos']]);
 
 
             /*$product->photo->title=$product->title;
@@ -148,13 +142,6 @@ class ProductsController extends AppController
             ]
         ])->toArray();
 
-        $productPackages = $this->ProductPackages->find('list', [
-            'keyField' => 'id',
-            'valueField' => function ($package) {
-                return $package->weight . ' ' . $package->unit;
-            },
-            'conditions' => ['ProductPackages.company_id' => $this->Auth->user('company_id')]
-        ])->toArray();
         $measurementUnits = $this->Products->MeasurementUnits->find('list', [
             'keyField' => 'id',
             'valueField' => function ($unit) {
@@ -166,8 +153,7 @@ class ProductsController extends AppController
             ],
             'order' => ['MeasurementUnits.title' => 'ASC']
         ]);
-        $unites = $this->Products->Productunites->Unites->find('list')->where(['statut' => 1, 'unite_id IS NOT' => NULL]);
-        $this->set(compact('product', 'measurementUnits', 'categories', 'unites', 'productPackages'));
+        $this->set(compact('product', 'measurementUnits', 'categories'));
     }
 
     /**
@@ -180,13 +166,20 @@ class ProductsController extends AppController
     public function edit($id = null)
     {
         $product = $this->Products->get($id, [
-            'contain' => ['ProductPackages'],
+            'contain' => ['Photos'],
             'conditions' => ['Products.company_id' => $this->Auth->user('company_id')]
         ]);
 
         if ($this->request->is(['patch', 'post', 'put'])) {
             $data = $this->request->getData();
-            $product = $this->Products->patchEntity($product, $data, ['associated' => ['ProductPackages']]);
+
+            $product = $this->Products->patchEntity($product, $data, ['associated' => ['Photos']]);
+
+            if (!empty($product->photo)) {
+                $product->photo->title = $product->title;
+                $product->photo->controleur = 'products';
+                $product->photo->company_id = $this->Auth->user('company_id');
+            }
 
             if ($this->Products->save($product)) {
                 $this->Flash->success(__('Le produit a été modifié.'));
@@ -204,15 +197,19 @@ class ProductsController extends AppController
             ]
         ])->toArray();
 
-        $productPackages = $this->ProductPackages->find('list', [
+        $measurementUnits = $this->Products->MeasurementUnits->find('list', [
             'keyField' => 'id',
-            'valueField' => function ($package) {
-                return $package->weight . ' ' . $package->unit;
+            'valueField' => function ($unit) {
+                return $unit->title . ' (' . $unit->abbreviation . ')';
             },
-            'conditions' => ['ProductPackages.company_id' => $this->Auth->user('company_id')]
-        ])->toArray();
+            'conditions' => [
+                'MeasurementUnits.company_id' => $this->Auth->user('company_id'),
+                'MeasurementUnits.statut' => 1
+            ],
+            'order' => ['MeasurementUnits.title' => 'ASC']
+        ]);
 
-        $this->set(compact('product', 'categories', 'productPackages'));
+        $this->set(compact('product', 'categories', 'measurementUnits'));
     }
 
     /**
@@ -452,6 +449,9 @@ class ProductsController extends AppController
 
             $actions = '<a href="' . Router::url(['action' => 'view', $product->id]) . '" class="btn btn-sm btn-clean btn-icon" title="Afficher">
                             <i class="la la-eye text-primary"></i>
+                        </a>
+                        <a href="' . Router::url(['action' => 'edit', $product->id]) . '" class="btn btn-sm btn-clean btn-icon" title="Modifier">
+                            <i class="la la-edit text-warning"></i>
                         </a>';
 
             $statusBadges = [

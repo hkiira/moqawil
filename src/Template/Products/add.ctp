@@ -108,61 +108,9 @@ $this->assign('subtitle', 'Créez un nouveau produit et définissez ses unités 
         </div>
     </div>
 
-    <!-- Section: Unités de Vente (Repeater) -->
-    <div class="card card-custom card-border mb-6">
-        <div class="card-header bg-light-primary border-0 min-h-50px px-5">
-            <div class="card-title">
-                <span class="card-icon">
-                    <i class="flaticon-open-box text-primary font-size-h5"></i>
-                </span>
-                <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Unités de Vente (Packages)</h5>
-            </div>
-        </div>
-        <div class="card-body p-6">
-            <div id="productunites_repeater">
-                <div data-repeater-list="productunites">
-                    <div data-repeater-item class="form-group row align-items-center mb-5 p-5 border border-dashed rounded bg-light-neutral">
-                        <div class="col-md-5 form-group mb-0">
-                            <label class="font-weight-bold">Quantité (Nombre de pièces):</label>
-                            <?= $this->Form->control('productunites.__INDEX__.quantity', [
-                                'label' => false,
-                                'type' => 'number',
-                                'min' => 1,
-                                'class' => 'form-control product-quantity form-control-solid',
-                                'value' => 1,
-                                'required' => false
-                            ]); ?>
-                        </div>
-                        <div class="col-md-5 form-group mb-0">
-                            <label class="font-weight-bold">Type de Package (Carton, Sac, Boite):</label>
-                            <?= $this->Form->control('productunites.__INDEX__.unite_id', [
-                                'label' => false,
-                                'options' => $unites,
-                                'class' => 'form-control product-select select2-repeater',
-                                'empty' => 'Sélectionner un Package',
-                                'required' => false
-                            ]); ?>
-                        </div>
-                        <div class="col-md-2 form-group mb-0 text-right mt-6">
-                            <a href="javascript:;" data-repeater-delete class="btn btn-sm font-weight-bolder btn-clean btn-icon btn-hover-icon-danger btn-hover-light-danger" title="Supprimer">
-                                <i class="la la-trash-o icon-xl"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group row mb-0">
-                    <div class="col-lg-4">
-                        <a href="javascript:;" data-repeater-create class="btn btn-sm font-weight-bolder btn-light-primary">
-                            <i class="la la-plus"></i> Ajouter un Package
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
-<?= $this->Html->script(['/assets/js/pages/crud/forms/widgets/select2.js', '/assets/plugins/custom/formrepeater/formrepeater.bundle.js'], ['block' => 'script_bottom']) ?>
+<?= $this->Html->script(['/assets/js/pages/crud/forms/widgets/select2.js'], ['block' => 'script_bottom']) ?>
 
 <?= $this->Html->scriptStart(['block'=>'script_bottom']) ?>
 $(document).ready(function() {
@@ -177,38 +125,6 @@ $(document).ready(function() {
         $(this).select2({
             placeholder: $(this).find('option[value=""]').text() || 'Sélectionner une option',
         });
-    });
-    
-    var repeater = $('#productunites_repeater').repeater({
-        initEmpty: false,
-        defaultValues: {
-            'productunites[__INDEX__][quantity]': 1,
-            'productunites[__INDEX__][statut]': '1'
-        },
-        show: function () {
-            $(this).slideDown();
-            var item = $(this);
-            var list = item.closest('[data-repeater-list]');
-            var index = list.find('[data-repeater-item]').length - 1;
-
-            item.find('[name*="__INDEX__"]').each(function() {
-                var currentName = $(this).attr('name');
-                var newName = currentName.replace('__INDEX__', index);
-                $(this).attr('name', newName);
-                var newId = newName.replace(/\[/g, '-').replace(/\]/g, '');
-                $(this).attr('id', newId);
-            });
-            
-            item.find('.select2-repeater').select2({
-                placeholder: 'Sélectionner un Package',
-                width: '100%'
-            });
-        },
-        hide: function (deleteElement) {
-            if (confirm("Êtes-vous sûr de vouloir supprimer ce package ?")) {
-                $(this).slideUp(deleteElement);
-            }
-        }
     });
 });
 <?= $this->Html->scriptEnd(); ?>

@@ -1,9 +1,8 @@
 <?php $this->extend('/Common/crud'); ?>
-<?php $this->loadHelper('Form', [ 'templates' => 'app_form' ]); 
-
-$this->assign('objet',$this->Form->create($product,['type'=>'file','id'=>'kt_form_1'])); 
+<?php $this->loadHelper('Form', ['templates' => 'app_form']);
+$this->assign('objet', $this->Form->create($product, ['type' => 'file', 'id' => 'kt_form_1']));
 $this->assign('title', 'Modifier le produit : ' . h($product->title));
-$this->assign('subtitle', 'Modifiez les détails de base et les emballages du produit.');
+$this->assign('subtitle', 'Modifiez les détails de base, l\'unité de mesure et les emballages du produit.');
 ?>
 
 <div class="card-body">
@@ -12,45 +11,71 @@ $this->assign('subtitle', 'Modifiez les détails de base et les emballages du pr
         <div class="card-header bg-light-primary border-0 min-h-50px px-5">
             <div class="card-title">
                 <span class="card-icon">
-                    <i class="flaticon2-edit text-primary font-size-h5"></i>
+                    <i class="flaticon2-information text-primary font-size-h5"></i>
                 </span>
-                <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Modifier les détails</h5>
+                <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Informations Générales</h5>
             </div>
         </div>
         <div class="card-body p-6">
             <div class="row">
-                <div class="col-md-12 mb-4">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold text-dark">Emballages</label>
-                        <?= $this->Form->control('product_packages._ids', [
-                            'options' => $productPackages,
-                            'class' => 'form-control select2',
-                            'multiple' => true,
+                <div class="col-xl-6">
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Nom de l'article <span class="text-danger">*</span></label>
+                        <?= $this->Form->control('title', ['label' => false, 'class' => 'form-control form-control-solid', 'placeholder' => 'Entrez le nom du produit']); ?>
+                        <?= $this->Form->control('brand_id', ['type' => 'hidden']); ?>
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Catégorie <span class="text-danger">*</span></label>
+                        <?= $this->Form->control('category_id', ['label' => false, 'options' => $categories, 'class' => 'form-control select2 selectpicker', 'data-live-search' => 'true', 'empty' => 'Sélectionner une Catégorie']); ?>
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Gestion du stock</label>
+                        <?php
+                        $stockOptions = [0 => 'Non', 1 => 'Oui'];
+                        echo $this->Form->control('gstock', ['label' => false, 'options' => $stockOptions, 'class' => 'form-control select2']);
+                        ?>
+                    </div>
+
+                </div>
+                <div class="col-xl-6">
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Photo du produit</label>
+                        <div class="custom-file mb-2">
+                            <?= $this->Form->control('photo.photo', ['label' => false, 'type' => 'file', 'class' => 'custom-file-input', 'id' => 'customFile']); ?>
+                            <label class="custom-file-label" for="customFile">Choisir un fichier</label>
+                        </div>
+                        <?php if (!empty($product->photo) && !empty($product->photo->photo)): ?>
+                            <div class="mt-2 text-left">
+                                <span class="text-muted font-size-sm">Photo actuelle : </span>
+                                <a href="<?= $this->Url->build('/' . $product->photo->dir . '/' . $product->photo->photo) ?>" target="_blank" class="font-weight-bold text-primary">
+                                    <?= h($product->photo->photo) ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <?= $this->Form->control('commission', ['class' => 'form-control', 'label' => false, 'type' => 'hidden']); ?>
+                    <?= $this->Form->control('packtype_id', ['type' => 'hidden']); ?>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Prix d'achat global <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <?= $this->Form->control('buyingprice', ['class' => 'form-control form-control-solid', 'label' => false, 'type' => 'number', 'step' => 'any', 'placeholder' => '0.00', 'required' => 'required']); ?>
+                            <div class="input-group-append"><span class="input-group-text">DH</span></div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Statut</label>
+                        <?php
+                        $statutOptions = [0 => 'Inactif', 1 => 'Actif'];
+                        echo $this->Form->control('statut', [
                             'label' => false,
-                            'required' => true
-                        ]) ?>
+                            'options' => $statutOptions,
+                            'class' => 'form-control select2'
+                        ]);
+                        ?>
                     </div>
                 </div>
-                <div class="col-md-6 form-group mb-4">
-                    <label class="font-weight-bold text-dark">Titre <span class="text-danger">*</span></label>
-                    <?= $this->Form->control('title', [
-                        'class' => 'form-control form-control-solid',
-                        'label' => false,
-                        'required' => true
-                    ]) ?>
-                </div>
-                <div class="col-md-6 form-group mb-4">
-                    <label class="font-weight-bold text-dark">Catégorie <span class="text-danger">*</span></label>
-                    <?= $this->Form->control('category_id', [
-                        'options' => $categories,
-                        'class' => 'form-control selectpicker',
-                        'data-live-search' => 'true',
-                        'label' => false,
-                        'required' => true
-                    ]) ?>
-                </div>
-                <div class="col-md-12 form-group mb-0 mt-2">
-                    <label class="font-weight-bold text-dark">Description</label>
+                <div class="col-xl-12 form-group mb-0 mt-2">
+                    <label class="font-weight-bold">Description</label>
                     <?= $this->Form->control('description', [
                         'type' => 'textarea',
                         'class' => 'form-control form-control-solid',
@@ -59,6 +84,43 @@ $this->assign('subtitle', 'Modifiez les détails de base et les emballages du pr
                     ]) ?>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Section: Unité de Mesure -->
+    <div class="card card-custom card-border mb-6">
+        <div class="card-header bg-light-primary border-0 min-h-50px px-5">
+            <div class="card-title">
+                <span class="card-icon">
+                    <i class="flaticon-settings-1 text-primary font-size-h5"></i>
+                </span>
+                <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">Unité de Mesure</h5>
+            </div>
+        </div>
+        <div class="card-body p-6">
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Valeur de la mesure <span class="text-danger">*</span></label>
+                    <?= $this->Form->control('measurement_quantity', [
+                        'label' => false,
+                        'type' => 'number',
+                        'class' => 'form-control form-control-solid',
+                        'step' => '0.01',
+                        'min' => '0.01',
+                        'placeholder' => 'Ex: 1.5'
+                    ]); ?>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold">Unité physique <span class="text-danger">*</span></label>
+                    <?= $this->Form->control('measurement_unit_id', [
+                        'label' => false,
+                        'options' => $measurementUnits,
+                        'class' => 'form-control select2',
+                        'empty' => 'Sélectionner une unité physique'
+                    ]); ?>
+                </div>
+            </div>
+            <span class="form-text text-muted font-size-sm mt-2"><i class="flaticon-questions text-muted mr-1"></i> Exemple: 1.5 Litre (L), 2 Kilogramme (kg), 500 Gramme (g), etc.</span>
         </div>
     </div>
 </div>
@@ -70,21 +132,21 @@ $this->Html->css('select2.min', ['block' => true]);
 $this->Html->script('select2.min', ['block' => true]);
 ?>
 
-<?php $this->start('script'); ?>
-<script>
-    $(document).ready(function() {
-        $('.selectpicker').selectpicker();
-        
-        $('.select2').select2({
-            placeholder: "<?= __('Sélectionner des emballages') ?>",
-            allowClear: true,
-            width: "100%",
-            language: {
-                noResults: function() {
-                    return "<?= __('Aucun résultat trouvé') ?>";
-                }
-            }
+<?= $this->Html->script(['/assets/js/pages/crud/forms/widgets/select2.js'], ['block' => 'script_bottom']) ?>
+
+<?= $this->Html->scriptStart(['block'=>'script_bottom']) ?>
+$(document).ready(function() {
+    // Custom file input name display
+    $(".custom-file-input").on("change", function() {
+        var fileName = $(this).val().split("\\").pop();
+        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
+
+    $.fn.select2.defaults.set("width", "100%");
+    $('.select2:not(.select2-repeater)').each(function() {
+        $(this).select2({
+            placeholder: $(this).find('option[value=""]').text() || 'Sélectionner une option',
         });
     });
-</script>
-<?php $this->end(); ?>
+});
+<?= $this->Html->scriptEnd(); ?>
