@@ -107,6 +107,7 @@ $this->assign('subtitle', 'Modifiez les détails de base, l\'unité de mesure et
                         'class' => 'form-control form-control-solid',
                         'step' => '0.01',
                         'min' => '0.01',
+                        'value' => $product->measurement_quantity,
                         'placeholder' => 'Ex: 1.5'
                     ]); ?>
                 </div>
@@ -116,6 +117,7 @@ $this->assign('subtitle', 'Modifiez les détails de base, l\'unité de mesure et
                         'label' => false,
                         'options' => $measurementUnits,
                         'class' => 'form-control select2',
+                        'value' => $product->measurement_unit_id,
                         'empty' => 'Sélectionner une unité physique'
                     ]); ?>
                 </div>
