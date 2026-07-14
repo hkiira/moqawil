@@ -54,6 +54,9 @@ class ProductsController extends AppController
      */
     public function view($id = null)
     {
+        $startDate = $this->request->getQuery('start_date');
+        $endDate = $this->request->getQuery('end_date');
+
         $product = $this->Products->get($id, [
             'contain' => [
                 'Categories',
@@ -61,23 +64,134 @@ class ProductsController extends AppController
                 'Suppliers',
                 'Packproducts.Packs',
                 'Whproducts.Warehouses',
-                'Slipproducts' => function ($q) {
-                    return $q->contain(['Slips'])
+                'Slipproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain(['Slips'])
                         ->where(['Slips.sliptype_id' => 6])
                         ->order(['Slipproducts.created' => 'DESC']);
+                    
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Slips.created) >=' => $startDate,
+                            'DATE(Slips.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
                 },
-                'Supporderproducts' => function ($q) {
-                    return $q->contain([
+                'Supporderproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain([
                         'Supplierorders',
                         'Receipts',
                         'Productunites.Unites'
                     ])->order(['Supporderproducts.created' => 'DESC']);
+                    
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Supporderproducts.created) >=' => $startDate,
+                            'DATE(Supporderproducts.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
                 }
             ],
             'conditions' => ['Products.company_id' => $this->Auth->user('company_id')]
         ]);
 
-        $this->set('product', $product);
+        $this->set(compact('product', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Print method
+     *
+     * @param string|null $id Product id.
+     * @return \Cake\Http\Response|null
+     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
+     */
+    public function print($id = null)
+    {
+        $startDate = $this->request->getQuery('start_date');
+        $endDate = $this->request->getQuery('end_date');
+
+        $product = $this->Products->get($id, [
+            'contain' => [
+                'Categories',
+                'Productunites.Unites',
+                'Suppliers',
+                'Packproducts.Packs',
+                'Whproducts.Warehouses',
+                'Slipproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain(['Slips'])
+                        ->where(['Slips.sliptype_id' => 6])
+                        ->order(['Slipproducts.created' => 'DESC']);
+                    
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Slips.created) >=' => $startDate,
+                            'DATE(Slips.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
+                },
+                'Supporderproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain([
+                        'Supplierorders',
+                        'Receipts',
+                        'Productunites.Unites'
+                    ])->order(['Supporderproducts.created' => 'DESC']);
+                    
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Supporderproducts.created) >=' => $startDate,
+                            'DATE(Supporderproducts.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
+                }
+            ],
+            'conditions' => ['Products.company_id' => $this->Auth->user('company_id')]
+        ]);
+
+        $this->set(compact('product', 'startDate', 'endDate'));
+    }
+
+    /**
+     * PrintAll method
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function printAll()
+    {
+        $startDate = $this->request->getQuery('start_date');
+        $endDate = $this->request->getQuery('end_date');
+
+        $products = $this->Products->find('all')
+            ->contain([
+                'Categories',
+                'Slipproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain(['Slips'])
+                        ->where(['Slips.sliptype_id' => 6]);
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Slips.created) >=' => $startDate,
+                            'DATE(Slips.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
+                },
+                'Supporderproducts' => function ($q) use ($startDate, $endDate) {
+                    $q = $q->contain(['Supplierorders', 'Receipts']);
+                    if ($startDate && $endDate) {
+                        $q->where([
+                            'DATE(Supporderproducts.created) >=' => $startDate,
+                            'DATE(Supporderproducts.created) <=' => $endDate
+                        ]);
+                    }
+                    return $q;
+                }
+            ])
+            ->where(['Products.company_id' => $this->Auth->user('company_id'), 'Products.statut !=' => -1])
+            ->order(['Products.title' => 'ASC']);
+
+        $this->set(compact('products', 'startDate', 'endDate'));
     }
 
     /**

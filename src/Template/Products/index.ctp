@@ -54,6 +54,26 @@ $this->assign('actionsubh', $test);
                     </div>
                 </div>
             </div>
+            
+            <!-- Date Filter & Consolidated Report PDF Row -->
+            <div class="row align-items-center mt-4 pt-4 border-top border-light">
+                <div class="col-lg-6">
+                    <div class="d-flex align-items-center">
+                        <label class="mr-3 mb-0 d-none d-md-block font-weight-bolder">Période Rapport :</label>
+                        <a href="#" class="btn btn-light font-weight-bold mr-2" id="kt_product_index_daterangepicker"
+                            data-toggle="tooltip" title="Sélectionnez la plage des dates pour le rapport consolidé" data-placement="left">
+                            <span class="text-muted font-size-base font-weight-bold mr-2" id="kt_product_index_daterangepicker_title">Période</span>
+                            <span class="text-primary font-size-base font-weight-bolder" id="kt_product_index_daterangepicker_date">Toutes les dates</span>
+                        </a>
+                        <input type="hidden" id="report_start_date" value="" />
+                        <input type="hidden" id="report_end_date" value="" />
+                        
+                        <a href="#" id="print_report_btn" class="btn btn-light-primary font-weight-bolder ml-2">
+                            <i class="la la-print icon-md"></i> Imprimer Rapport PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="datatable datatable-bordered datatable-head-custom" id="kt_datatable_products"></div>
@@ -110,5 +130,62 @@ return;
 // Submit the hidden form to go to the batchAdjustStock page
 $('#batch_adjust_stock_form').trigger('submit');
 });
+});
+<?= $this->Html->scriptEnd(); ?>
+
+<?= $this->Html->scriptStart(['block' => 'script_bottom']) ?>
+$(document).ready(function() {
+    var start = moment().startOf('month');
+    var end = moment().endOf('month');
+
+    function cb(start, end) {
+        var range = start.locale('fr').format('D MMM YYYY') + ' - ' + end.locale('fr').format('D MMM YYYY');
+        $('#kt_product_index_daterangepicker_date').html(range);
+        $('#report_start_date').val(start.format('YYYY-MM-DD'));
+        $('#report_end_date').val(end.format('YYYY-MM-DD'));
+    }
+
+    $('#kt_product_index_daterangepicker').daterangepicker({
+        startDate: start,
+        endDate: end,
+        locale: {
+            format: 'YYYY-MM-DD',
+            separator: ' / ',
+            applyLabel: 'Appliquer',
+            cancelLabel: 'Annuler',
+            fromLabel: 'Du',
+            toLabel: 'Au',
+            customRangeLabel: 'Personnalisé',
+            daysOfWeek: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+            monthNames: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
+            firstDay: 1
+        },
+        ranges: {
+           "Aujourd'hui": [moment(), moment()],
+           'Hier': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           '7 Derniers Jours': [moment().subtract(6, 'days'), moment()],
+           '30 Derniers Jours': [moment().subtract(29, 'days'), moment()],
+           'Ce Mois': [moment().startOf('month'), moment().endOf('month')],
+           'Mois Dernier': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    }, cb);
+
+    // Default to show "Toutes les dates"
+    $('#kt_product_index_daterangepicker_date').html('Toutes les dates');
+
+    $('#kt_product_index_daterangepicker').on('apply.daterangepicker', function (ev, picker) {
+        cb(picker.startDate, picker.endDate);
+    });
+
+    $('#print_report_btn').on('click', function(e) {
+        e.preventDefault();
+        var startVal = $('#report_start_date').val();
+        var endVal = $('#report_end_date').val();
+        var url = "<?= $this->Url->build(['action' => 'printAll', '_ext' => 'pdf']) ?>";
+        if (startVal && endVal) {
+            url += "?start_date=" + startVal + "&end_date=" + endVal;
+        }
+        window.open(url, '_blank');
+    });
 });
 <?= $this->Html->scriptEnd(); ?>

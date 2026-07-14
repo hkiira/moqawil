@@ -2,9 +2,9 @@
 <?php $this->loadHelper('Form', ['templates' => 'app_form']);
 
 $this->assign('title', 'Détails du produit : ' . h($product->title));
-// Add edit button to toolbar block
 $editButton = $this->Html->link('<i class="la la-edit icon-sm"></i> Modifier ce produit', ['action' => 'edit', $product->id], ['class' => 'btn btn-light-warning font-weight-bolder btn-sm mr-2', 'escape' => false]);
-$this->assign('edit', $editButton);
+$printButton = $this->Html->link('<i class="la la-print icon-sm"></i> Imprimer PDF', ['action' => 'print', $product->id, '_ext' => 'pdf', '?' => ['start_date' => $startDate, 'end_date' => $endDate]], ['class' => 'btn btn-light-primary font-weight-bolder btn-sm mr-2', 'escape' => false, 'target' => '_blank']);
+$this->assign('edit', $printButton . $editButton);
 
 $realStock = 0;
 if (!empty($product->whproducts)) {
@@ -117,10 +117,6 @@ $totalValue = $realStock * $product->buyingprice;
                     }
                     ?>
                 </div>
-            </div>
-
-            <!-- Real Stock & Value Widget -->
-            <div class="card card-custom bg-light-info card-stretch gutter-b mb-6">
                 <div class="card-body p-6">
                     <span class="card-icon d-block mb-3">
                         <i class="flaticon-boxes text-info font-size-h1"></i>
@@ -129,11 +125,15 @@ $totalValue = $realStock * $product->buyingprice;
                         Stock Réel
                     </div>
                     <div class="font-weight-bold text-info mt-2">
-                        <span class="font-size-h1 mr-2"><?= $realStock ?></span> <span class="font-size-lg">unités</span>
+                        <span class="font-size-h1 mr-2">
+                            <?= $realStock ?>
+                        </span> <span class="font-size-lg">unités</span>
                     </div>
                     <div class="mt-5 pt-4 border-top border-info border-opacity-20">
                         <span class="text-info font-weight-bolder font-size-lg">Valeur Totale :</span>
-                        <div class="text-info font-weight-bolder font-size-h2 mt-1"><?= $this->Number->currency($totalValue, 'MAD') ?></div>
+                        <div class="text-info font-weight-bolder font-size-h2 mt-1">
+                            <?= $this->Number->currency($totalValue, 'MAD') ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -185,6 +185,36 @@ $totalValue = $realStock * $product->buyingprice;
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- Date Filter Toolbar -->
+    <div class="card card-custom mb-6">
+        <div class="card-body py-4">
+            <form id="filter_form" method="GET" action="<?= $this->Url->build(['action' => 'view', $product->id]) ?>"
+                class="form d-flex align-items-center">
+                <div class="form-group mb-0 d-flex align-items-center">
+                    <label class="mb-0 font-weight-bold mr-4">Période :</label>
+                    <a href="#" class="btn btn-light font-weight-bold mr-2" id="kt_product_daterangepicker"
+                        data-toggle="tooltip" title="Sélectionnez la plage des dates" data-placement="left">
+                        <span class="text-muted font-size-base font-weight-bold mr-2"
+                            id="kt_product_daterangepicker_title">Période</span>
+                        <span class="text-primary font-size-base font-weight-bolder"
+                            id="kt_product_daterangepicker_date"><?= ($startDate && $endDate) ? h($startDate) . ' / ' . h($endDate) : date('Y-m-d') ?></span>
+                    </a>
+                    <input type="hidden" name="start_date" id="start_date" value="<?= h($startDate) ?>" />
+                    <input type="hidden" name="end_date" id="end_date" value="<?= h($endDate) ?>" />
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary ml-4 font-weight-bolder">
+                    <i class="la la-filter icon-sm"></i>Filtrer
+                </button>
+                <?php if ($startDate || $endDate): ?>
+                    <a href="<?= $this->Url->build(['action' => 'view', $product->id]) ?>"
+                        class="btn btn-sm btn-light-danger ml-2 font-weight-bolder">
+                        <i class="la la-close icon-sm"></i>Réinitialiser
+                    </a>
+                <?php endif; ?>
+            </form>
+        </div>
+    </div>
 
     <!-- Suppliers Orders & Receipts section -->
     <div class="card card-custom card-border mt-6">
@@ -313,3 +343,58 @@ $totalValue = $realStock * $product->buyingprice;
         </div>
     </div>
 </div>
+
+<?php $this->append('script_bottom'); ?>
+<?= $this->Html->script('/assets/js/pages/widgets.js', ['block' => 'script_bottom']) ?>
+<script>
+    $(document).ready(function () {
+        var start = <?= ($startDate) ? "moment('" . h($startDate) . "')" : "moment().startOf('month')" ?>;
+        var end = <?= ($endDate) ? "moment('" . h($endDate) . "')" : "moment().endOf('month')" ?>;
+
+        function cb(start, end, label) {
+            var range = start.locale('fr').format('D MMM YYYY') + ' - ' + end.locale('fr').format('D MMM YYYY');
+            $('#kt_product_daterangepicker_date').html(range);
+        }
+
+        $('#kt_product_daterangepicker').daterangepicker({
+            startDate: start,
+            endDate: end,
+            locale: {
+                format: 'YYYY-MM-DD',
+                separator: ' / ',
+                applyLabel: 'Appliquer',
+                cancelLabel: 'Annuler',
+                fromLabel: 'Du',
+                toLabel: 'Au',
+                customRangeLabel: 'Personnalisé',
+                daysOfWeek: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+                monthNames: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
+                firstDay: 1
+            },
+            ranges: {
+               "Aujourd'hui": [moment(), moment()],
+               'Hier': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+               '7 Derniers Jours': [moment().subtract(6, 'days'), moment()],
+               '30 Derniers Jours': [moment().subtract(29, 'days'), moment()],
+               'Ce Mois': [moment().startOf('month'), moment().endOf('month')],
+               'Mois Dernier': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            }
+        }, cb);
+
+        <?php if ($startDate && $endDate): ?>
+            cb(start, end, '');
+        <?php else: ?>
+            $('#kt_product_daterangepicker_date').html('Toutes les dates');
+        <?php endif; ?>
+
+        $('#kt_product_daterangepicker').on('apply.daterangepicker', function (ev, picker) {
+            var datestart = picker.startDate.format('YYYY-MM-DD');
+            var dateend = picker.endDate.format('YYYY-MM-DD');
+            $('#start_date').val(datestart);
+            $('#end_date').val(dateend);
+            $('#kt_product_daterangepicker_date').text(datestart + ' / ' + dateend);
+            $('#filter_form').submit();
+        });
+    });
+</script>
+<?php $this->end(); ?>
