@@ -73,97 +73,121 @@
 			</tr>
 		</table>
 
-		<!-- Report Table -->
-		<table class="table">
-			<thead>
-				<tr>
-					<th style="width: 10%;">Référence</th>
-					<th style="width: 25%;">Désignation</th>
-					<th style="text-align: right; width: 8%;">Stock Réel</th>
-					<th style="text-align: right; width: 8%;">Qty Rec.</th>
-					<th style="text-align: right; width: 11%;">Valeur Rec.</th>
-					<th style="text-align: right; width: 8%;">Qty Cond.</th>
-					<th style="text-align: right; width: 11%;">Valeur Cond.</th>
-					<th style="text-align: right; width: 9%;">Diff Qty</th>
-					<th style="text-align: right; width: 10%;">Diff Valeur</th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php
-				$grandReceiptsQty = 0;
-				$grandReceiptsValue = 0;
-				$grandSlipsQty = 0;
-				$grandSlipsValue = 0;
-				$hasAnyActivity = false;
-				?>
-				<?php foreach ($products as $product): ?>
-					<?php
-					$receiptsQty = 0;
-					$receiptsValue = 0;
-					if (!empty($product->supporderproducts)) {
-						foreach ($product->supporderproducts as $sop) {
-							if ($sop->receipt_id !== null) {
-								$receiptsQty += $sop->quantity;
-								$receiptsValue += $sop->quantity * $sop->price;
-							}
-						}
+		<?php
+		$productsByCategory = [];
+		$grandReceiptsQty = 0;
+		$grandReceiptsValue = 0;
+		$grandSlipsQty = 0;
+		$grandSlipsValue = 0;
+		$hasAnyActivity = false;
+
+		foreach ($products as $product) {
+			$receiptsQty = 0;
+			$receiptsValue = 0;
+			if (!empty($product->supporderproducts)) {
+				foreach ($product->supporderproducts as $sop) {
+					if ($sop->receipt_id !== null) {
+						$receiptsQty += $sop->quantity;
+						$receiptsValue += $sop->quantity * $sop->price;
 					}
+				}
+			}
 
-					$slipsQty = 0;
-					$slipsValue = 0;
-					if (!empty($product->slipproducts)) {
-						foreach ($product->slipproducts as $sp) {
-							$slipsQty += $sp->quantity;
-							$slipsValue += $sp->quantity * ($sp->price > 0 ? $sp->price : $product->buyingprice);
-						}
+			$slipsQty = 0;
+			$slipsValue = 0;
+			if (!empty($product->slipproducts)) {
+				foreach ($product->slipproducts as $sp) {
+					$slipsQty += $sp->quantity;
+					$slipsValue += $sp->quantity * ($sp->price > 0 ? $sp->price : $product->buyingprice);
+				}
+			}
+
+			// Skip products with absolutely no activity during the filtered period
+			if ($receiptsQty == 0 && $slipsQty == 0) {
+				continue;
+			}
+			$hasAnyActivity = true;
+
+			// Store calculated values on the product object dynamically
+			$product->receiptsQty = $receiptsQty;
+			$product->receiptsValue = $receiptsValue;
+			$product->slipsQty = $slipsQty;
+			$product->slipsValue = $slipsValue;
+
+			// Calculate real stock from whproducts
+			$realStock = 0;
+			if (!empty($product->whproducts)) {
+				foreach ($product->whproducts as $whp) {
+					if ($whp->has('warehouse') && $whp->warehouse && $whp->warehouse->whnature_id == 1) {
+						$realStock += $whp->quantity;
 					}
+				}
+			}
+			$product->realStock = $realStock;
 
-					// Calculate real stock from whproducts
-					$realStock = 0;
-					if (!empty($product->whproducts)) {
-						foreach ($product->whproducts as $whp) {
-							if ($whp->has('warehouse') && $whp->warehouse && $whp->warehouse->whnature_id == 1) {
-								$realStock += $whp->quantity;
-							}
-						}
-					}
+			$grandReceiptsQty += $receiptsQty;
+			$grandReceiptsValue += $receiptsValue;
+			$grandSlipsQty += $slipsQty;
+			$grandSlipsValue += $slipsValue;
 
-					// Skip products with absolutely no activity during the filtered period
-					if ($receiptsQty == 0 && $slipsQty == 0) {
-						continue;
-					}
-					$hasAnyActivity = true;
+			$categoryName = !empty($product->category) ? $product->category->title : 'Non catégorisé';
+			$productsByCategory[$categoryName][] = $product;
+		}
 
-					$diffQty = $receiptsQty - $slipsQty;
-					$diffValue = $receiptsValue - $slipsValue;
+		// Sort categories alphabetically
+		ksort($productsByCategory);
+		?>
 
-					$grandReceiptsQty += $receiptsQty;
-					$grandReceiptsValue += $receiptsValue;
-					$grandSlipsQty += $slipsQty;
-					$grandSlipsValue += $slipsValue;
-					?>
+		<!-- Report Tables Grouped by Category -->
+		<?php if ($hasAnyActivity): ?>
+			<?php foreach ($productsByCategory as $categoryName => $catProducts): ?>
+				<h3 style="font-family: sans; color: #0066CC; border-bottom: 1.5px solid #0066CC; padding-bottom: 4px; margin-top: 20px; font-size: 13px;"><?= h($categoryName) ?></h3>
+				<table class="table" style="margin-bottom: 25px;">
+					<thead>
+						<tr>
+							<th style="width: 10%;">Référence</th>
+							<th style="width: 25%;">Désignation</th>
+							<th style="text-align: right; width: 8%;">Stock Réel</th>
+							<th style="text-align: right; width: 8%;">Qty Rec.</th>
+							<th style="text-align: right; width: 11%;">Valeur Rec.</th>
+							<th style="text-align: right; width: 8%;">Qty Cond.</th>
+							<th style="text-align: right; width: 11%;">Valeur Cond.</th>
+							<th style="text-align: right; width: 9%;">Diff Qty</th>
+							<th style="text-align: right; width: 10%;">Diff Valeur</th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ($catProducts as $product): ?>
+							<?php
+							$diffQty = $product->receiptsQty - $product->slipsQty;
+							$diffValue = $product->receiptsValue - $product->slipsValue;
+							?>
+							<tr>
+								<td><?= h($product->reference) ?></td>
+								<td style="font-weight: bold;"><?= h($product->title) ?></td>
+								<td style="text-align: right; font-weight: bold;"><?= $product->realStock ?></td>
+								<td style="text-align: right; color: #28A745;"><?= $product->receiptsQty ?></td>
+								<td style="text-align: right; color: #28A745;"><?= number_format($product->receiptsValue, 2, ',', ' ') ?> DH</td>
+								<td style="text-align: right; color: #DC3545;"><?= $product->slipsQty ?></td>
+								<td style="text-align: right; color: #DC3545;"><?= number_format($product->slipsValue, 2, ',', ' ') ?> DH</td>
+								<td style="text-align: right; font-weight: bold;"><?= $diffQty ?></td>
+								<td style="text-align: right; font-weight: bold;"><?= number_format($diffValue, 2, ',', ' ') ?> DH</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endforeach; ?>
+		<?php else: ?>
+			<table class="table">
+				<tbody>
 					<tr>
-						<td><?= h($product->reference) ?></td>
-						<td style="font-weight: bold;"><?= h($product->title) ?></td>
-						<td style="text-align: right; font-weight: bold;"><?= $realStock ?></td>
-						<td style="text-align: right; color: #28A745;"><?= $receiptsQty ?></td>
-						<td style="text-align: right; color: #28A745;"><?= number_format($receiptsValue, 2, ',', ' ') ?> DH</td>
-						<td style="text-align: right; color: #DC3545;"><?= $slipsQty ?></td>
-						<td style="text-align: right; color: #DC3545;"><?= number_format($slipsValue, 2, ',', ' ') ?> DH</td>
-						<td style="text-align: right; font-weight: bold;"><?= $diffQty ?></td>
-						<td style="text-align: right; font-weight: bold;"><?= number_format($diffValue, 2, ',', ' ') ?> DH</td>
-					</tr>
-				<?php endforeach; ?>
-
-				<?php if (!$hasAnyActivity): ?>
-					<tr>
-						<td colspan="9" style="text-align: center; color: #777; font-style: italic; padding: 15px;">
+						<td style="text-align: center; color: #777; font-style: italic; padding: 15px;">
 							Aucune activité enregistrée (réceptions ou conditionnements) pour aucun produit durant cette période.
 						</td>
 					</tr>
-				<?php endif; ?>
-			</tbody>
-		</table>
+				</tbody>
+			</table>
+		<?php endif; ?>
 
 		<!-- Grand Summary Section -->
 		<?php

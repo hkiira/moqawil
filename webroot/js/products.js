@@ -21,16 +21,6 @@ var ProductsDataTable = function () {
                             }
                             return dataSet;
                         },
-                        params: {
-                            query: {
-                                Category: function () {
-                                    return $('#kt_datatable_search_category_products').val();
-                                },
-                                Status: function () {
-                                    return $('#kt_datatable_search_status_products').val();
-                                }
-                            }
-                        }
                     }
                 },
                 pageSize: 10,
@@ -116,6 +106,10 @@ var ProductsDataTable = function () {
 
         // Custom filter dropdowns
         $('#kt_datatable_search_category_products, #kt_datatable_search_status_products').on('change', function () {
+            var query = table.getDataSourceQuery();
+            query.Category = $('#kt_datatable_search_category_products').val();
+            query.Status = $('#kt_datatable_search_status_products').val();
+            table.setDataSourceQuery(query);
             table.reload();
         });
     };

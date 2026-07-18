@@ -90,9 +90,19 @@ class ReceiptsController extends AppController
 
                     // rechercher le stock du produit
                     $warehouse = $this->Receipts->Supplierorders->Warehouses->find('all')->where(['whnature_id' => 1, 'warehouse_id' => $supporderproduct->supplierorder->warehouse_id, 'whtype_id' => 2])->last();
-                    $whproducts = $this->Receipts->Supporderproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehouse->id, 'item_id' => $supporderproduct->product_id, 'item_type' => 'Product'])->last();
-                    $data['supporderproducts'][$key]['product']['whproducts'][0]['id'] = $whproducts->id;
-                    $data['supporderproducts'][$key]['product']['whproducts'][0]['quantity'] = $whproducts->quantity + $supporderproduct->quantity;
+                    if ($warehouse) {
+                        $whproducts = $this->Receipts->Supporderproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehouse->id, 'item_id' => $supporderproduct->product_id, 'item_type' => 'Product'])->last();
+                        if ($whproducts) {
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['id'] = $whproducts->id;
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['quantity'] = $whproducts->quantity + $supporderproduct->quantity;
+                        } else {
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['warehouse_id'] = $warehouse->id;
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['item_id'] = $supporderproduct->product_id;
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['item_type'] = 'Product';
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['quantity'] = $supporderproduct->quantity;
+                            $data['supporderproducts'][$key]['product']['whproducts'][0]['company_id'] = $this->Auth->user('company_id');
+                        }
+                    }
 
                 }
                 $receipt = $this->Receipts->patchEntity($receipt, $data, ['associated' => ['Supporderproducts.Products.Whproducts']]);

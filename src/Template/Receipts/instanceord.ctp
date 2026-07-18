@@ -6,7 +6,7 @@
           <tr>
             <th>Article</th>
             <th>Quantité commandé</th>
-            <th>Quantité reçu (Carton/Sac)</th>
+            <th>Quantité reçu</th>
           </tr>
         </thead>
         <tbody>

@@ -162,8 +162,9 @@ class ProductsController extends AppController
     {
         $startDate = $this->request->getQuery('start_date');
         $endDate = $this->request->getQuery('end_date');
+        $searchCategories = $this->request->getQuery('category_ids');
 
-        $products = $this->Products->find('all')
+        $query = $this->Products->find('all')
             ->contain([
                 'Categories',
                 'Whproducts.Warehouses',
@@ -189,8 +190,17 @@ class ProductsController extends AppController
                     return $q;
                 }
             ])
-            ->where(['Products.company_id' => $this->Auth->user('company_id'), 'Products.statut !=' => -1])
-            ->order(['Products.title' => 'ASC']);
+            ->where(['Products.company_id' => $this->Auth->user('company_id'), 'Products.statut !=' => -1]);
+
+        if (!empty($searchCategories)) {
+            if (is_array($searchCategories)) {
+                $query->where(['Products.category_id IN' => $searchCategories]);
+            } else {
+                $query->where(['Products.category_id' => $searchCategories]);
+            }
+        }
+
+        $products = $query->order(['Products.title' => 'ASC']);
 
         $this->set(compact('products', 'startDate', 'endDate'));
     }

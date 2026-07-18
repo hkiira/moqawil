@@ -181,9 +181,21 @@ $(document).ready(function() {
         e.preventDefault();
         var startVal = $('#report_start_date').val();
         var endVal = $('#report_end_date').val();
-        var url = "<?= $this->Url->build(['action' => 'printAll', '_ext' => 'pdf']) ?>";
+        var categoryIds = $('#kt_datatable_search_category_products').val();
+
+        var params = {};
         if (startVal && endVal) {
-            url += "?start_date=" + startVal + "&end_date=" + endVal;
+            params.start_date = startVal;
+            params.end_date = endVal;
+        }
+        if (categoryIds && categoryIds.length > 0) {
+            params.category_ids = categoryIds;
+        }
+
+        var url = "<?= $this->Url->build(['action' => 'printAll', '_ext' => 'pdf']) ?>";
+        var queryString = $.param(params);
+        if (queryString) {
+            url += "?" + queryString;
         }
         window.open(url, '_blank');
     });

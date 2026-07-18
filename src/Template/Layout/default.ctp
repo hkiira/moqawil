@@ -238,7 +238,7 @@
         $.ajax({
             url: HURL+"orders/defaultwh/"+defaultwh,
             success: function(response){
-                defaultwhtype=<?= $this->request->getSession()->read('Auth.User.defaultwhtype'); ?>;
+                defaultwhtype=<?= json_encode($this->request->getSession()->read('Auth.User.defaultwhtype')); ?>;
                 if(defaultwhtype==1){
                     location.reload();
                 }else{
