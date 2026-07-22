@@ -67,9 +67,6 @@ class SlipsController extends AppController
      */
     public function index($id = null)
     {
-        if (!$id) {
-            $id = 1;
-        }
         if ($id) {
             $sliptype = $this->Slips->Sliptypes->get($id);
             if ($id == 1) {
@@ -3537,7 +3534,7 @@ class SlipsController extends AppController
                 ]
             ]
         ]);
-        
+
         ini_set('max_execution_time', '300');
         ini_set("pcre.backtrack_limit", "5000000");
 

@@ -1,11 +1,40 @@
-<footer class="kt-footer flex items-center justify-between px-6 py-4 border-t border-border bg-background" id="footer">
-    <div class="container-fluid flex items-center justify-between grow">
-        <div class="text-xs text-muted-foreground">
-            2026 &copy; <a href="https://thebest.ma" target="_blank" class="font-semibold text-foreground hover:text-primary">AB Solutions</a>
+<div class="footer bg-white py-4 d-flex flex-lg-column " id="kt_footer">
+
+    <!--begin::Container-->
+
+    <div class=" container-fluid  d-flex flex-column flex-md-row align-items-center justify-content-between">
+
+        <!--begin::Copyright-->
+
+        <div class="text-dark order-2 order-md-1">
+
+            <span class="text-muted font-weight-bold mr-2">2020&copy;
+            </span>
+
+            <a href="https://thebest.ma" target="_blank" class="text-dark-75 text-hover-primary">AB Solutions
+            </a>
+
         </div>
-        <div class="flex items-center gap-4 text-xs font-medium text-muted-foreground">
-            <a href="https://thebest.ma" target="_blank" class="hover:text-primary">À propos</a>
-            <a href="https://thebest.ma/contact/" target="_blank" class="hover:text-primary">Contact</a>
+
+        <!--end::Copyright-->
+
+
+        <!--begin::Nav-->
+
+        <div class="nav nav-dark">
+
+            <a href="https://thebest.ma/pages/lagence" target="_blank" class="nav-link pl-0 pr-5">A propos
+            </a>
+
+            <a href="https://thebest.ma/contact/" target="_blank" class="nav-link pl-0 pr-0">Contact
+            </a>
+
         </div>
+
+        <!--end::Nav-->
+
     </div>
-</footer>
+
+    <!--end::Container-->
+
+</div>
