@@ -10,14 +10,16 @@
         Meta - <?= $this->fetch('title') ?>
     </title>
     <?= $this->Html->meta('icon') ?>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+    <?= $this->Html->css('/metronic/vendors/keenicons/styles.bundle.css') ?>
+    <?= $this->Html->css('/metronic/css/core.bundle.css') ?>
+    <?= $this->Html->css('/metronic/css/styles.css') ?>
     <?= $this->Html->css('/assets/plugins/custom/fullcalendar/fullcalendar.bundle.css') ?>
     <?= $this->Html->css('/assets/plugins/global/plugins.bundle.css') ?>
     <?= $this->Html->css('/assets/plugins/custom/prismjs/prismjs.bundle.css') ?>
     <?= $this->Html->css('/assets/css/style.bundle.css') ?>
     <?= $this->Html->css('/assets/css/themes/layout/header/base/dark.css') ?>
     <?= $this->Html->css('/assets/css/themes/layout/header/menu/dark.css') ?>
-    <?= $this->Html->css('/assets/css/style.bundle.css') ?>
     <?= $this->Html->css('/assets/css/themes/layout/brand/dark.css') ?>
     <?= $this->Html->css('/assets/css/themes/layout/aside/dark.css') ?>
 
@@ -326,6 +328,7 @@
             }
         });
     });        
+<?= $this->Html->script('/metronic/js/core.bundle.js') ?>
 <?= $this->Html->scriptEnd(); ?>
 </body>
 <style type="text/css">
