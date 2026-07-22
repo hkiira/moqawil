@@ -10,6 +10,7 @@
     <?= $this->Html->css('/metronic/vendors/keenicons/styles.bundle.css') ?>
     <?= $this->Html->css('/metronic/css/core.bundle.css') ?>
     <?= $this->Html->css('/metronic/css/styles.css') ?>
+    <?= $this->Html->css('/assets/plugins/global/plugins.bundle.css') ?>
     <?= $this->Html->css('/assets/css/style.bundle.css') ?>
     
     <!-- jQuery & DataTables CSS -->
@@ -70,6 +71,8 @@
     <script type="text/javascript" src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
     <?= $this->Html->script('/metronic/js/core.bundle.js') ?>
+    <?= $this->Html->script('/assets/plugins/global/plugins.bundle.js') ?>
+    <?= $this->Html->script('/assets/js/scripts.bundle.js') ?>
 
     <?= $this->fetch('css_bottom') ?>
     <?= $this->fetch('script_bottom') ?>

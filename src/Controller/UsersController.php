@@ -22,13 +22,12 @@ class UsersController extends AppController
      */
 
     public function index($id=null)
-
     {
-
+        if (!$id) {
+            $id = 1;
+        }
         $role=$this->Users->Roles->get($id);
-
         $this->set(compact('id','role'));
-
     }
 
 

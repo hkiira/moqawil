@@ -67,6 +67,9 @@ class SlipsController extends AppController
      */
     public function index($id = null)
     {
+        if (!$id) {
+            $id = 1;
+        }
         if ($id) {
             $sliptype = $this->Slips->Sliptypes->get($id);
             if ($id == 1) {
