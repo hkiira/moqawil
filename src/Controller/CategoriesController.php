@@ -309,18 +309,21 @@ class CategoriesController extends AppController
 
     public function search($id = null, $type = "pack", $categoryid = null)
     {
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+        $row = isset($_GET['start']) ? (int)$_GET['start'] : 0;
+        $rowperpage = isset($_GET['length']) ? (int)$_GET['length'] : 50;
+        if ($rowperpage <= 0) {
+            $rowperpage = 50;
+        }
 
-        $page = $this->request->getData('pagination.page');
-        $pages = $this->request->getData('pagination.pages');
-        $perpage = $this->request->getData('pagination.perpage');
-        $total = $this->request->getData('pagination.total');
-        $field = $this->request->getData('sort.field'); // Column name
-        $sort = $this->request->getData('sort.sort'); // Column name
+        $searchValue = isset($_GET['search']['value']) ? trim($_GET['search']['value']) : '';
+        if (empty($searchValue) && $this->request->getData('query.generalSearch')) {
+            $searchValue = strtolower($this->request->getData('query.generalSearch'));
+        }
 
-        $columnName = $this->request->getData('sort.field'); // Column name
-        $columnSort = $this->request->getData('sort.sort'); // Column name
-        $searchValue = strtolower($this->request->getData('query.generalSearch')); // Search value
-        $searchStatus = ($this->request->getData('query.Status') !== NULL) ? $this->request->getData('query.Status') : -1;
+        $columnIndex = isset($_GET['order'][0]['column']) ? $_GET['order'][0]['column'] : 1;
+        $columnSort = isset($_GET['order'][0]['dir']) ? $_GET['order'][0]['dir'] : 'asc';
+        $columnName = isset($_GET['columns'][$columnIndex]['data']) ? $_GET['columns'][$columnIndex]['data'] : 'name';
 
         switch ($columnName) {
             case 'code':
@@ -332,22 +335,24 @@ class CategoriesController extends AppController
             case 'category':
                 $columnName = "Parentcategories.title";
                 break;
+            case 'status':
+                $columnName = "Categories.statut";
+                break;
             default:
                 $columnName = "Categories.title";
-                $columnSort = "asc";
                 break;
         }
+
         ## Total number of records with filtering
         $sel = $this->Categories->find('all')->contain('Parentcategories')->where(['Categories.company_id' => $this->Auth->user('company_id')]);
-        ## Search 
         $empQuery = $this->Categories->find('all')->contain('Parentcategories')->where(['Categories.company_id' => $this->Auth->user('company_id')]);
-        $empQuery->order([$columnName => $columnSort]);
+
         $sel->where(['Categories.type' => $type]);
         $empQuery->where(['Categories.type' => $type]);
 
         if ($searchValue != '') {
-            $sel->where([
-                "OR" => [
+            $orCond = [
+                'OR' => [
                     ['Categories.title LIKE' => '%' . $searchValue . '%'],
                     ['Categories.code LIKE' => '%' . $searchValue . '%'],
                     ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
@@ -355,23 +360,11 @@ class CategoriesController extends AppController
                     ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
                     ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
                 ]
-            ]);
-            $empQuery->where([
-                "OR" => [
-                    ['Categories.title LIKE' => '%' . $searchValue . '%'],
-                    ['Categories.code LIKE' => '%' . $searchValue . '%'],
-                    ['Parentcategories.title LIKE' => '%' . $searchValue . '%'],
-                    ['lower(Categories.code) LIKE' => '%' . $searchValue . '%'],
-                    ['lower(Categories.title) LIKE' => '%' . $searchValue . '%'],
-                    ['lower(Parentcategories.title) LIKE' => '%' . $searchValue . '%']
-                ]
-            ]);
+            ];
+            $sel->where($orCond);
+            $empQuery->where($orCond);
         }
 
-        if ($searchStatus > -1) {
-            $empQuery->where(['Categories.statut' => $searchStatus]);
-            $sel->where(['Categories.statut' => $searchStatus]);
-        }
         if ($id == 1) {
             $sel->where(['Categories.category_id IS NULL']);
             $empQuery->where(['Categories.category_id IS NULL']);
@@ -384,19 +377,43 @@ class CategoriesController extends AppController
                 $empQuery->where(['Categories.category_id IS NOT NULL']);
             }
         }
-        $empQuery->limit($perpage);
-        $empQuery->page($page);
-        $sel->select(['count' => $sel->func()->count('*')]);
-        $total = $sel->last()->count;
+
+        $totalRecords = $sel->count();
+        $totalRecordwithFilter = $totalRecords;
+
+        $empQuery->order([$columnName => $columnSort]);
+
+        if ($row == 0) {
+            $empQuery->limit($rowperpage);
+        } else {
+            $empQuery->limit($rowperpage);
+            $empQuery->page(($row / $rowperpage) + 1);
+        }
 
         $data = [];
-        foreach ($empQuery as $key => $category) {
+        foreach ($empQuery as $category) {
             $photo = $this->Categories->Photos->find('all')->where(['controleur' => 'categories', 'objectid' => $category->id])->order(['created' => 'ASC'])->last();
             $img = Router::Url('/') . 'webroot/img/unvailable.jpg';
             if ($photo) {
                 $img = Router::Url('/') . $photo->dir . '/thumbnail160-' . $photo->photo;
             }
             $parentcategory = ($category->parentcategory) ? $category->parentcategory->title : "aucune";
+
+            $actions = '<div class="dropdown dropdown-inline">
+                <a href="javascript:;" class="btn btn-sm btn-clean btn-icon" data-toggle="dropdown">
+                    <i class="la la-cog"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-right">
+                    <ul class="nav nav-hoverable flex-column">
+                        <li class="nav-item"><a class="nav-link" href="' . Router::Url('/categories/edit/' . $category->id) . '"><i class="nav-icon la la-edit"></i><span class="nav-text">Modifier</span></a></li>
+                        <li class="nav-item"><a class="nav-link" href="' . Router::Url('/categories/edit/' . $category->id . '/image') . '"><i class="nav-icon la la-image"></i><span class="nav-text">Modifier l\'image</span></a></li>' .
+                        ($parentcategory == "aucune" ?
+                            '<li class="nav-item"><a class="nav-link" href="' . Router::Url('/categories/index/2/' . $category->id) . '"><i class="nav-icon la la-list"></i><span class="nav-text">Liste des sous-catégories</span></a></li>' :
+                            '<li class="nav-item"><a class="nav-link" href="' . Router::Url('/categories/view/' . $category->id) . '"><i class="nav-icon la la-eye"></i><span class="nav-text">Liste des articles</span></a></li>') .
+                    '</ul>
+                </div>
+            </div>';
+
             $data[] = [
                 "id" => $category->id,
                 "img" => $img,
@@ -405,20 +422,20 @@ class CategoriesController extends AppController
                 "category" => $parentcategory,
                 "status" => $category->statut,
                 "parentcategory" => $parentcategory,
-                "actions" => null
+                "actions" => $actions
             ];
         }
 
         $response = [
-            "meta" => [
-                'page' => $page,
-                'pages' => $pages,
-                'perpage' => $perpage,
-                'total' => $total,
-                'sort' => $sort
-            ],
+            'draw' => $draw,
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecordwithFilter,
             'data' => $data,
+            'iTotalRecords' => $totalRecords,
+            'iTotalDisplayRecords' => $totalRecordwithFilter,
+            'aaData' => $data
         ];
+
         $this->autoRender = false;
         echo json_encode($response);
         exit;

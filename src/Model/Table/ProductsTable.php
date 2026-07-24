@@ -47,7 +47,7 @@ class ProductsTable extends Table
 
         $this->belongsTo('Categories', [
             'foreignKey' => 'category_id',
-            'joinType' => 'INNER',
+            'joinType' => 'LEFT',
         ]);
         $this->belongsTo('Companies', [
             'foreignKey' => 'company_id',

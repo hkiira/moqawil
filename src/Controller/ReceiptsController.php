@@ -183,7 +183,7 @@ class ReceiptsController extends AppController
     public function view($id = null)
     {
         $receipt = $this->Receipts->get($id, [
-            'contain' => ['Suppliers', 'Users', 'Supplierorders', 'Companies', 'Supporderproducts.Packs.Packunites.Unites.Parentunites'],
+            'contain' => ['Suppliers.Adresses.Cities', 'Users', 'Supplierorders', 'Companies', 'Supporderproducts.Products', 'Supporderproducts.Productunites.Unites.Parentunites'],
         ]);
 
         $this->set('receipt', $receipt);
@@ -192,7 +192,7 @@ class ReceiptsController extends AppController
     public function print($id = null)
     {
         $receipt = $this->Receipts->get($id, [
-            'contain' => ['Suppliers.Adresses.Cities', 'Users', 'Supplierorders', 'Companies', 'Supporderproducts.Products.MeasurementUnits', 'Supporderproducts.Productunites.Unites.Parentunites'],
+            'contain' => ['Suppliers.Adresses.Cities', 'Users', 'Supplierorders', 'Companies', 'Supporderproducts.Products', 'Supporderproducts.Productunites.Unites.Parentunites'],
         ]);
 
         $this->set('receipt', $receipt);

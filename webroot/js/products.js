@@ -35,7 +35,8 @@ var ProductsDataTable = function () {
             sortable: true,
             pagination: true,
             search: {
-                input: $('#kt_datatable_search_query_products')
+                input: $('#kt_datatable_search_query_products'),
+                key: 'generalSearch'
             },
             columns: [
                 {

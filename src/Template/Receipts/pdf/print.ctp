@@ -183,23 +183,38 @@
 						<td style="width: 50%;"><b>Qté(CRT/SAC)</b></td>
 					</tr>
 					<?php foreach ($receipt->supporderproducts as $key => $supporderproduct): ?>
-						
+						<?php
+							$itemTitle = '-';
+							if ($supporderproduct->has('product') && $supporderproduct->product) {
+								$itemTitle = h($supporderproduct->product->title);
+							} elseif ($supporderproduct->has('pack') && $supporderproduct->pack) {
+								$itemTitle = h($supporderproduct->pack->title);
+							}
+
+							$pUnite = ($supporderproduct->has('productunite') && $supporderproduct->productunite) ? $supporderproduct->productunite : (($supporderproduct->has('pack') && $supporderproduct->pack && !empty($supporderproduct->pack->packunites[0])) ? $supporderproduct->pack->packunites[0] : null);
+
+							$uniteQty = ($pUnite && isset($pUnite->quantity) && $pUnite->quantity > 0) ? (int)$pUnite->quantity : 1;
+							$uniteAbrev = ($pUnite && $pUnite->has('unite') && $pUnite->unite) ? h($pUnite->unite->abrev) : 'unités';
+							$parentAbrev = ($pUnite && $pUnite->has('unite') && $pUnite->unite && $pUnite->unite->has('parentunite') && $pUnite->unite->parentunite) ? h($pUnite->unite->parentunite->abrev) : '';
+
+							$cartons = intVal($supporderproduct->quantity / $uniteQty);
+							$pieces = $supporderproduct->quantity % $uniteQty;
+						?>
 						<tr>
-							<td ><?=  $supporderproduct->product->title ?></td>
-							<?php if ($supporderproduct->quantity%$supporderproduct->productunite->quantity): ?>
-                                 <td>
-                                     <?php if (intVal($supporderproduct->quantity/$supporderproduct->productunite->quantity)>0): ?>
-                                         <?=  intVal($supporderproduct->quantity/$supporderproduct->productunite->quantity).' '.$supporderproduct->productunite->unite->abrev.' de ' ?> 
-                                         et <?=  $supporderproduct->quantity % $supporderproduct->productunite->quantity.' '.$supporderproduct->productunite->unite->parentunite->abrev ?> </td>
-                                     <?php else: ?>
-                                         <?=  $supporderproduct->quantity % $supporderproduct->productunite->quantity.' '.$supporderproduct->productunite->unite->parentunite->abrev.' de ' ?> </td>
-                                     <?php endif ?>
-                                 </td>
-							<?php else: ?>
-                                 <td>
-                                     <?= intVal($supporderproduct->quantity/$supporderproduct->productunite->quantity).' '.$supporderproduct->productunite->unite->abrev.' de '.$supporderproduct->productunite->quantity*$supporderproduct->product->measurement_quantity.' '.$supporderproduct->product->measurement_unit->abbreviation ?>
-                                 </td>
-                             <?php endif ?>
+							<td><?= $itemTitle ?></td>
+							<td>
+								<?php
+									if ($uniteQty > 1 && $pieces > 0) {
+										if ($cartons > 0) {
+											echo $cartons . ' ' . $uniteAbrev . ' et ' . $pieces . ' ' . ($parentAbrev ?: 'pièces');
+										} else {
+											echo $pieces . ' ' . ($parentAbrev ?: 'pièces');
+										}
+									} else {
+										echo ($cartons > 0 ? $cartons : $supporderproduct->quantity) . ' ' . $uniteAbrev;
+									}
+								?>
+							</td>
 						</tr>
 					<?php endforeach ?>
 				</table>

@@ -58,14 +58,24 @@ class SupplierordersController extends AppController
     public function view($id = null)
     {
         $supplierorder = $this->Supplierorders->get($id, [
-            'contain' => ['Suppliers.Adresses','Supporderproducts.Packs.Packunites.Unites.Parentunites'],
+            'contain' => [
+                'Suppliers.Adresses.Cities',
+                'Supporderproducts.Products',
+                'Supporderproducts.Productunites.Unites.Parentunites'
+            ],
         ]);
         $this->set('supplierorder', $supplierorder);
     }
     public function print($id = null)
     {
         $supplierorder = $this->Supplierorders->get($id, [
-            'contain' => ['Suppliers.Adresses.Cities','Supporderproducts.Packs.Packunites.Unites.Parentunites','Users','Companies'],
+            'contain' => [
+                'Suppliers.Adresses.Cities',
+                'Supporderproducts.Products',
+                'Supporderproducts.Productunites.Unites.Parentunites',
+                'Users',
+                'Companies'
+            ],
         ]);
         $this->set('supplierorder', $supplierorder);
     }

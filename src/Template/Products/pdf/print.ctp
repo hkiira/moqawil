@@ -165,8 +165,10 @@
 				<tr>
 					<th>N° Commande</th>
 					<th>N° Réception</th>
+					<th>Statut</th>
 					<th>Date</th>
-					<th>Quantité</th>
+					<th>Qté Commandée</th>
+					<th>Qté Reçue</th>
 					<th>Prix Unitaire</th>
 					<th>Prix Total</th>
 				</tr>
@@ -174,14 +176,41 @@
 			<tbody>
 				<?php if (!empty($product->supporderproducts)): ?>
 					<?php foreach ($product->supporderproducts as $sop): ?>
+						<?php
+							$sopStatut = $sop->statut;
+							if (($sopStatut === null || $sopStatut === '') && $sop->has('supplierorder') && $sop->supplierorder) {
+								$sopStatut = $sop->supplierorder->statut;
+							}
+							$hasReceipt = ($sop->has('receipt') && $sop->receipt) || !empty($sop->receipt_id);
+						?>
 						<tr>
 							<td style="font-weight: bold;">
 								<?= $sop->has('supplierorder') ? h($sop->supplierorder->code) : '-' ?>
 							</td>
-							<td><?= $sop->has('receipt') ? h($sop->receipt->code) : '-' ?></td>
+							<td>
+								<?php if ($hasReceipt): ?>
+									<?= h($sop->receipt->code ?? ('#' . $sop->receipt_id)) ?>
+								<?php elseif ((int)$sopStatut === 8): ?>
+									Annulée
+								<?php else: ?>
+									En attente
+								<?php endif; ?>
+							</td>
+							<td>
+								<?php if ($hasReceipt): ?>
+									Réceptionné
+								<?php elseif ((int)$sopStatut === 8): ?>
+									Annulée
+								<?php else: ?>
+									En attente
+								<?php endif; ?>
+							</td>
 							<td><?= h($sop->created) ?></td>
 							<td>
 								<?= h($sop->quantity) ?>
+							</td>
+							<td>
+								<?= $hasReceipt ? h($sop->quantity) : 0 ?>
 							</td>
 							<td><?= number_format($sop->price, 2, ',', ' ') ?> DH</td>
 							<td><?= number_format($sop->quantity * $sop->price, 2, ',', ' ') ?> DH</td>
@@ -189,7 +218,7 @@
 					<?php endforeach; ?>
 				<?php else: ?>
 					<tr>
-						<td colspan="5" style="text-align: center; color: #777; font-style: italic;">Aucune commande ou
+						<td colspan="8" style="text-align: center; color: #777; font-style: italic;">Aucune commande ou
 							réception enregistrée pour cette période.</td>
 					</tr>
 				<?php endif; ?>

@@ -15,6 +15,26 @@ if (!empty($product->whproducts)) {
     }
 }
 $totalValue = $realStock * $product->buyingprice;
+
+$notReceivedQty = 0;
+$totalOrderedQty = 0;
+$totalReceivedQty = 0;
+if (!empty($product->supporderproducts)) {
+    foreach ($product->supporderproducts as $sop) {
+        $hasReceipt = ($sop->has('receipt') && $sop->receipt) || !empty($sop->receipt_id);
+        $sopStatut = $sop->statut;
+        if (($sopStatut === null || $sopStatut === '') && $sop->has('supplierorder') && $sop->supplierorder) {
+            $sopStatut = $sop->supplierorder->statut;
+        }
+
+        $totalOrderedQty += $sop->quantity;
+        if ($hasReceipt) {
+            $totalReceivedQty += $sop->quantity;
+        } else if ((int)$sopStatut !== 8) {
+            $notReceivedQty += $sop->quantity;
+        }
+    }
+}
 ?>
 
 <div class="card-body p-6">
@@ -135,6 +155,12 @@ $totalValue = $realStock * $product->buyingprice;
                             <?= $this->Number->currency($totalValue, 'MAD') ?>
                         </div>
                     </div>
+                    <div class="mt-4 pt-4 border-top border-warning border-opacity-20">
+                        <span class="text-warning font-weight-bolder font-size-lg">Non Réceptionné (En attente) :</span>
+                        <div class="text-warning font-weight-bolder font-size-h2 mt-1">
+                            <?= $notReceivedQty ?> <span class="font-size-lg">unités</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -218,14 +244,19 @@ $totalValue = $realStock * $product->buyingprice;
 
     <!-- Suppliers Orders & Receipts section -->
     <div class="card card-custom card-border mt-6">
-        <div class="card-header bg-light-primary border-0 min-h-50px px-5">
-            <div class="card-title">
+        <div class="card-header bg-light-primary border-0 min-h-50px px-5 d-flex align-items-center justify-content-between">
+            <div class="card-title mb-0">
                 <span class="card-icon">
                     <i class="flaticon2-shopping-cart text-primary font-size-h5"></i>
                 </span>
                 <h5 class="card-label text-primary font-weight-bolder font-size-h6 mb-0">
                     <?= __('Commandes Fournisseurs & Réceptions') ?>
                 </h5>
+            </div>
+            <div>
+                <span class="label label-lg label-inline label-light-warning font-weight-bolder font-size-base py-3 px-4">
+                    <i class="la la-clock text-warning mr-1"></i> <?= __('Total Non Réceptionné :') ?> <?= $notReceivedQty ?>
+                </span>
             </div>
         </div>
         <div class="card-body p-0">
@@ -235,14 +266,25 @@ $totalValue = $realStock * $product->buyingprice;
                         <tr class="bg-light">
                             <th class="pl-5" scope="col"><?= __('N° Commande') ?></th>
                             <th scope="col"><?= __('N° Réception') ?></th>
+                            <th scope="col"><?= __('Statut') ?></th>
                             <th scope="col"><?= __('Date') ?></th>
-                            <th scope="col"><?= __('Quantité') ?></th>
+                            <th scope="col"><?= __('Qté Commandée') ?></th>
+                            <th scope="col"><?= __('Qté Reçue') ?></th>
+                            <th scope="col" class="text-warning"><?= __('Qté Non Reçue') ?></th>
                             <th scope="col"><?= __('Prix Unitaire') ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($product->supporderproducts)): ?>
                             <?php foreach ($product->supporderproducts as $sop): ?>
+                                <?php
+                                    $sopStatut = $sop->statut;
+                                    if (($sopStatut === null || $sopStatut === '') && $sop->has('supplierorder') && $sop->supplierorder) {
+                                        $sopStatut = $sop->supplierorder->statut;
+                                    }
+                                    $hasReceipt = ($sop->has('receipt') && $sop->receipt) || !empty($sop->receipt_id);
+                                    $unitTitle = ($sop->has('productunite') && $sop->productunite->has('unite') && $sop->productunite->unite) ? h($sop->productunite->unite->title) : __('unités');
+                                ?>
                                 <tr>
                                     <td class="pl-5 font-weight-bold">
                                         <?php if ($sop->has('supplierorder') && $sop->supplierorder): ?>
@@ -252,10 +294,23 @@ $totalValue = $realStock * $product->buyingprice;
                                         <?php endif; ?>
                                     </td>
                                     <td class="font-weight-bold">
-                                        <?php if ($sop->has('receipt') && $sop->receipt): ?>
-                                            <?= $this->Html->link($sop->receipt->code, ['controller' => 'Receipts', 'action' => 'view', $sop->receipt->id], ['class' => 'text-success font-weight-bolder']) ?>
+                                        <?php if ($hasReceipt): ?>
+                                            <?= $this->Html->link($sop->receipt->code ?? ('#' . $sop->receipt_id), ['controller' => 'Receipts', 'action' => 'view', $sop->receipt->id ?? $sop->receipt_id], ['class' => 'text-success font-weight-bolder']) ?>
                                         <?php else: ?>
-                                            <span class="text-muted">-</span>
+                                            <?php if ((int)$sopStatut === 8): ?>
+                                                <span class="label label-inline label-light-danger font-weight-bolder"><?= __('Annulée') ?></span>
+                                            <?php else: ?>
+                                                <span class="label label-inline label-light-warning font-weight-bolder"><?= __('En attente') ?></span>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($hasReceipt): ?>
+                                            <span class="label label-inline label-light-success font-weight-bolder"><?= __('Réceptionné') ?></span>
+                                        <?php elseif ((int)$sopStatut === 8): ?>
+                                            <span class="label label-inline label-light-danger font-weight-bolder"><?= __('Annulée') ?></span>
+                                        <?php else: ?>
+                                            <span class="label label-inline label-light-warning font-weight-bolder"><?= __('En attente') ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-muted font-size-sm">
@@ -263,9 +318,34 @@ $totalValue = $realStock * $product->buyingprice;
                                     </td>
                                     <td>
                                         <span class="label label-inline label-light-info font-weight-bolder">
-                                            <?= h($sop->quantity) ?>
-                                            <?= ($sop->has('productunite') && $sop->productunite->has('unite') && $sop->productunite->unite) ? h($sop->productunite->unite->title) : __('unités') ?>
+                                            <?= h($sop->quantity) ?> <?= $unitTitle ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($hasReceipt): ?>
+                                            <span class="label label-inline label-light-success font-weight-bolder">
+                                                <?= h($sop->quantity) ?> <?= $unitTitle ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="label label-inline label-light-dark font-weight-bolder">
+                                                0 <?= $unitTitle ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!$hasReceipt && (int)$sopStatut !== 8): ?>
+                                            <span class="label label-inline label-light-warning font-weight-bolder">
+                                                <?= h($sop->quantity) ?> <?= $unitTitle ?>
+                                            </span>
+                                        <?php elseif ((int)$sopStatut === 8): ?>
+                                            <span class="label label-inline label-light-danger font-weight-bolder">
+                                                <?= __('Annulée') ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="label label-inline label-light-dark font-weight-bolder">
+                                                0 <?= $unitTitle ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-dark font-weight-bolder">
                                         <?= $this->Number->currency($sop->price, 'MAD') ?>
@@ -274,13 +354,27 @@ $totalValue = $realStock * $product->buyingprice;
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="text-muted text-center py-4">
+                                <td colspan="8" class="text-muted text-center py-4">
                                     <i class="flaticon2-warning text-warning mr-1"></i>
                                     <?= __('Aucune commande ou réception enregistrée pour ce produit.') ?>
                                 </td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <?php if (!empty($product->supporderproducts)): ?>
+                        <tfoot>
+                            <tr class="bg-light-warning font-weight-bolder">
+                                <td colspan="4" class="pl-5 text-warning font-weight-boldest text-uppercase">
+                                    <?= __('Total Non Réceptionné (En Attente)') ?>
+                                </td>
+                                <td colspan="4">
+                                    <span class="label label-inline label-light-warning font-weight-boldest font-size-h6 px-4 py-2">
+                                        <?= $notReceivedQty ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    <?php endif; ?>
                 </table>
             </div>
         </div>

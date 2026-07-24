@@ -461,19 +461,47 @@ class ProductsController extends AppController
             $page = floor((int) $start / $perpage) + 1;
         }
 
-        $searchValue = $this->request->getData('query.generalSearch');
-        if (empty($searchValue)) {
-            $searchValue = $this->request->getData('search.value');
+        $queryData = $this->request->getData('query');
+        if (empty($queryData)) {
+            $queryData = $this->request->getQuery('query');
         }
-        $searchValue = strtolower((string) $searchValue);
+
+        $searchValue = null;
+        if (is_array($queryData)) {
+            $searchValue = $queryData['generalSearch'] ?? $queryData['kt_datatable_search_query_products'] ?? null;
+        }
+
+        if ($searchValue === null || $searchValue === '') {
+            $searchValue = $this->request->getData('query.generalSearch')
+                ?? $this->request->getData('generalSearch')
+                ?? $this->request->getData('search.value')
+                ?? $this->request->getQuery('query.generalSearch')
+                ?? $this->request->getQuery('generalSearch')
+                ?? $this->request->getQuery('search.value');
+        }
+
+        $rawSearchValue = trim((string)$searchValue);
+        $searchValue = strtolower($rawSearchValue);
 
         // Custom filters from request (if you add them to the AJAX call from DataTables)
-        $searchCategories = $this->request->getData('query.Category');
-        $searchStatusParam = $this->request->getData('query.Status');
+        $searchCategories = null;
+        if (is_array($queryData) && isset($queryData['Category'])) {
+            $searchCategories = $queryData['Category'];
+        } else {
+            $searchCategories = $this->request->getData('query.Category') ?? $this->request->getQuery('query.Category');
+        }
+
+        $searchStatusParam = null;
+        if (is_array($queryData) && isset($queryData['Status'])) {
+            $searchStatusParam = $queryData['Status'];
+        } else {
+            $searchStatusParam = $this->request->getData('query.Status') ?? $this->request->getQuery('query.Status');
+        }
         $searchStatus = ($searchStatusParam !== null && $searchStatusParam !== '') ? (int) $searchStatusParam : -1;
 
 
         $query = $this->Products->find('all')
+            ->leftJoinWith('Categories')
             ->contain([
                 'Categories',
                 'Suppliers',
@@ -486,12 +514,15 @@ class ProductsController extends AppController
         $query->where(['Products.company_id' => $this->Auth->user('company_id')]);
 
         // Apply general search value
-        if ($searchValue != '') {
-            $query->where(function ($exp, $q) use ($searchValue) {
+        if ($searchValue !== '') {
+            $query->where(function ($exp, $q) use ($searchValue, $rawSearchValue) {
                 return $exp->or_([
-                    'Products.title LIKE' => '%' . $searchValue . '%',
-                    'Products.reference LIKE' => '%' . $searchValue . '%', // Assuming 'reference' is like 'code'
-                    'Categories.title LIKE' => '%' . $searchValue . '%',
+                    'Products.title LIKE' => '%' . $rawSearchValue . '%',
+                    'lower(Products.title) LIKE' => '%' . $searchValue . '%',
+                    'Products.reference LIKE' => '%' . $rawSearchValue . '%',
+                    'lower(Products.reference) LIKE' => '%' . $searchValue . '%',
+                    'Categories.title LIKE' => '%' . $rawSearchValue . '%',
+                    'lower(Categories.title) LIKE' => '%' . $searchValue . '%',
                 ]);
             });
         }

@@ -1237,7 +1237,7 @@ class SlipsController extends AppController
                     //récupérer le produit du stock a décharger
                     $whproduct = $this->Slips->Slipproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehouse->id, 'item_id' => $slipproduct->item_id, 'item_type' => $slipproduct->item_type])->first();
                     //récupérer le produit du stock a charger
-                    $whproductd = $this->Slips->Slipproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehoused->id, 'item_id' => $slipproduct->item_id, 'item_type' => $slipproduct->item_type])->first();
+                    // $whproductd = $this->Slips->Slipproducts->Products->Whproducts->find('all')->where(['warehouse_id' => $warehoused->id, 'item_id' => $slipproduct->item_id, 'item_type' => $slipproduct->item_type])->first();
                     //récuperer la quantité par sac/carton du produit
                     $productunite = $this->Slips->Slipproducts->Productunites->get($slipproduct->unity_id);
                     $qtyCarton = isset($slipprd[0]['quantity']) ? intVal($slipprd[0]['quantity']) : 0;
@@ -1268,22 +1268,22 @@ class SlipsController extends AppController
                             ]);
                             $this->StockMovements->save($movSource);
                         }
-                        if ($whproductd) {
-                            $whproductd->quantity += $slipproduct->quantity;
-                            $this->Whproducts->save($whproductd);
-                            $movDest = $this->StockMovements->newEntity([
-                                'item_id' => $slipproduct->item_id,
-                                'item_type' => $slipproduct->item_type,
-                                'warehouse_id' => $whproductd->warehouse_id,
-                                'quantity_change' => $slipproduct->quantity,
-                                'balance_after_movement' => $whproductd->quantity,
-                                'movement_type' => 'slip_validation_dest',
-                                'user_id' => $this->Auth->user('id'),
-                                'company_id' => $this->Auth->user('company_id'),
-                                'notes' => 'Stock addition on slip validation (Slip ID: ' . $slip->id . ')',
-                            ]);
-                            $this->StockMovements->save($movDest);
-                        }
+                        // if ($whproductd) {
+                        //     $whproductd->quantity += $slipproduct->quantity;
+                        //     $this->Whproducts->save($whproductd);
+                        //     $movDest = $this->StockMovements->newEntity([
+                        //         'item_id' => $slipproduct->item_id,
+                        //         'item_type' => $slipproduct->item_type,
+                        //         'warehouse_id' => $whproductd->warehouse_id,
+                        //         'quantity_change' => $slipproduct->quantity,
+                        //         'balance_after_movement' => $whproductd->quantity,
+                        //         'movement_type' => 'slip_validation_dest',
+                        //         'user_id' => $this->Auth->user('id'),
+                        //         'company_id' => $this->Auth->user('company_id'),
+                        //         'notes' => 'Stock addition on slip validation (Slip ID: ' . $slip->id . ')',
+                        //     ]);
+                        //     $this->StockMovements->save($movDest);
+                        // }
                         $increment++;
 
                         //si la quantité validé et inférieur a la quantité commande et supérieur ou égale a 0
@@ -1312,22 +1312,22 @@ class SlipsController extends AppController
                             ]);
                             $this->StockMovements->save($movSource);
                         }
-                        if ($whproductd) {
-                            $whproductd->quantity += $validatedQty;
-                            $this->Whproducts->save($whproductd);
-                            $movDest = $this->StockMovements->newEntity([
-                                'item_id' => $slipproduct->item_id,
-                                'item_type' => $slipproduct->item_type,
-                                'warehouse_id' => $whproductd->warehouse_id,
-                                'quantity_change' => $validatedQty,
-                                'balance_after_movement' => $whproductd->quantity,
-                                'movement_type' => 'slip_validation_dest',
-                                'user_id' => $this->Auth->user('id'),
-                                'company_id' => $this->Auth->user('company_id'),
-                                'notes' => 'Stock addition on slip validation (Slip ID: ' . $slip->id . ')',
-                            ]);
-                            $this->StockMovements->save($movDest);
-                        }
+                        // if ($whproductd) {
+                        //     $whproductd->quantity += $validatedQty;
+                        //     $this->Whproducts->save($whproductd);
+                        //     $movDest = $this->StockMovements->newEntity([
+                        //         'item_id' => $slipproduct->item_id,
+                        //         'item_type' => $slipproduct->item_type,
+                        //         'warehouse_id' => $whproductd->warehouse_id,
+                        //         'quantity_change' => $validatedQty,
+                        //         'balance_after_movement' => $whproductd->quantity,
+                        //         'movement_type' => 'slip_validation_dest',
+                        //         'user_id' => $this->Auth->user('id'),
+                        //         'company_id' => $this->Auth->user('company_id'),
+                        //         'notes' => 'Stock addition on slip validation (Slip ID: ' . $slip->id . ')',
+                        //     ]);
+                        //     $this->StockMovements->save($movDest);
+                        // }
 
                         $increment++;
 
